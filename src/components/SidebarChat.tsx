@@ -1,8 +1,50 @@
+
 import { useEffect, useRef, useState } from "react";
 import { SendHorizonal, Loader2 } from "lucide-react";
+import { WS_URL, CLIENT_ID } from "@/config";
 
-const WS_URL = "ws://localhost:6065/multiagent-engine/llm/chat";
-const CLIENT_ID = "kapture";
+function ReengageDialog({ open, onSubmit }: { open: boolean, onSubmit: (time: number, message: string) => void }) {
+  const [time, setTime] = useState(10);
+  const [message, setMessage] = useState("Hi, are you still there?");
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-card p-6 rounded-xl shadow-lg w-full max-w-xs">
+        <h2 className="text-lg font-bold mb-4">Re-engagement Settings</h2>
+        <div className="mb-3">
+          <label className="block text-sm mb-1">Re-engage after (seconds):</label>
+          <input
+            type="number"
+            min={1}
+            value={time}
+            onChange={e => setTime(Number(e.target.value))}
+            className="w-full px-3 py-2 rounded border border-border bg-background"
+          />
+        </div>
+        <div className="mb-4">
+          <label className="block text-sm mb-1">Re-engagement message:</label>
+          <input
+            type="text"
+            value={message}
+            onChange={e => setMessage(e.target.value)}
+            className="w-full px-3 py-2 rounded border border-border bg-background"
+          />
+        </div>
+        <button
+          className="w-full py-2 rounded bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition"
+          onClick={() => onSubmit(time, message)}
+        >
+          Continue to Chat
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
+
+// const WS_URL = "ws://localhost:6065/multiagent-engine/llm/chat";
+// const CLIENT_ID = "kapture";
 
 
 function randomConversationId() {
@@ -14,6 +56,10 @@ function randomConversationId() {
 }
 
 export const SidebarChat = () => {
+  // Reengagement config state
+  const [reengageDialogOpen, setReengageDialogOpen] = useState(true);
+  const [reengageTime, setReengageTime] = useState(10);
+  const [reengageMessage, setReengageMessage] = useState("Hi, are you still there?");
   const [messages, setMessages] = useState([
     { role: "system", content: "Start a conversation with your agent." },
   ]);
@@ -31,7 +77,7 @@ export const SidebarChat = () => {
   }, [messages]);
 
   useEffect(() => {
-    // Open websocket connection
+    if (reengageDialogOpen) return; // Don't open websocket until dialog is closed
     const socket = new window.WebSocket(WS_URL);
     setWs(socket);
     setWsConnected(false);
@@ -69,7 +115,21 @@ export const SidebarChat = () => {
     return () => {
       socket.close();
     };
-  }, [conversationId]);
+  }, [conversationId, reengageDialogOpen]);
+
+  // Render the dialog after all hooks, just before the return
+  if (reengageDialogOpen) {
+    return (
+      <ReengageDialog
+        open={reengageDialogOpen}
+        onSubmit={(time, message) => {
+          setReengageTime(time);
+          setReengageMessage(message);
+          setReengageDialogOpen(false);
+        }}
+      />
+    );
+  }
 
   const sendMessage = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -81,6 +141,10 @@ export const SidebarChat = () => {
       config_version: configVersion,
       conversation_id: conversationId,
       event_type: isInit ? "INIT" : "",
+      reengage: {
+        time: reengageTime,
+        message: reengageMessage
+      }
     };
     ws.send(JSON.stringify(payload));
     setMessages((msgs) => [
@@ -105,7 +169,7 @@ export const SidebarChat = () => {
       <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card/90 backdrop-blur-md sticky top-0 z-10">
         <div className="flex items-center gap-4">
           <span className="font-bold text-xl text-primary flex items-center gap-2">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-message-square-dots"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/><path d="M12 8v.01"/><path d="M16 8v.01"/><path d="M8 8v.01"/></svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-message-square-dots"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" /><path d="M12 8v.01" /><path d="M16 8v.01" /><path d="M8 8v.01" /></svg>
             Agent Chat
             <span title={wsConnected ? 'Connected' : 'Disconnected'} className="ml-3 flex items-center">
               <span
@@ -131,7 +195,7 @@ export const SidebarChat = () => {
             type="button"
             title="Start a new conversation"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-plus"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-plus"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
             New
           </button>
         </div>
@@ -146,8 +210,8 @@ export const SidebarChat = () => {
               msg.role === "user"
                 ? "flex justify-end"
                 : msg.role === "assistant"
-                ? "flex justify-start"
-                : "flex justify-center"
+                  ? "flex justify-start"
+                  : "flex justify-center"
             }
           >
             <div
@@ -155,8 +219,8 @@ export const SidebarChat = () => {
                 ${msg.role === "user"
                   ? "bg-primary text-primary-foreground ml-auto rounded-br-md"
                   : msg.role === "assistant"
-                  ? "bg-accent text-accent-foreground mr-auto rounded-bl-md"
-                  : "bg-muted text-muted-foreground mx-auto text-center"}
+                    ? "bg-accent text-accent-foreground mr-auto rounded-bl-md"
+                    : "bg-muted text-muted-foreground mx-auto text-center"}
               `}
               style={{ wordBreak: 'break-word', lineHeight: 1.6 }}
             >

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { API_BASE_URL } from "@/config";
+import { API_BASE_URL, CLIENT_ID } from "@/config";
 import { Dialog } from "@/components/ui/dialog";
 import { DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Link, useNavigate } from "react-router-dom";
@@ -30,11 +30,16 @@ const BotLibrary = () => {
 
   const loadData = async () => {
     try {
+      console.log("Loading bots and tools...");
       // Fetch bots from API
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/bot/clients/kapture/bots?skip=0&limit=100`, {
-        headers: { 'accept': 'application/json' }
+      const res = await fetch(`${API_BASE_URL}/multiagent-core/bot/clients/${CLIENT_ID}/bots?skip=0&limit=100`, {
+        headers: {
+          'accept': 'application/json',
+          'ngrok-skip-browser-warning': '69420'
+        }
       });
       const botsData = await res.json();
+      console.log("Bots fetched:", botsData);
       // The API returns { total, skip, limit, bots: [...] }
       const botsArr = Array.isArray(botsData?.bots) ? botsData.bots : [];
       // Map API bots to local BotType structure for display
@@ -81,9 +86,12 @@ const BotLibrary = () => {
   const handleDeleteBot = async () => {
     if (!botToDelete) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/bot/clients/kapture/bots/${botToDelete}`, {
+      const res = await fetch(`${API_BASE_URL}/multiagent-core/bot/clients/${CLIENT_ID}/bots/${botToDelete}`, {
         method: 'DELETE',
-        headers: { 'accept': '*/*' }
+        headers: {
+          'accept': '*/*',
+          'ngrok-skip-browser-warning': '69420'
+        }
       });
       if (!res.ok) throw new Error('Failed to delete bot');
       setDeleteDialogOpen(false);
@@ -123,8 +131,11 @@ const BotLibrary = () => {
   const handleCloneBot = async (botId: string) => {
     try {
       // Fetch the latest bot details from the API
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/bot/clients/kapture/bots/${botId}`, {
-        headers: { 'accept': 'application/json' }
+      const res = await fetch(`${API_BASE_URL}/multiagent-core/bot/clients/${CLIENT_ID}/bots/${botId}`, {
+        headers: {
+          'accept': 'application/json',
+          'ngrok-skip-browser-warning': '69420'
+        }
       });
       if (!res.ok) throw new Error('Failed to fetch bot');
       const bot = await res.json();
@@ -374,20 +385,20 @@ const BotLibrary = () => {
           </CardContent>
         </Card>
       )}
-    {/* Delete Confirmation Dialog */}
-    <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Delete Bot?</DialogTitle>
-        </DialogHeader>
-        <div>Are you sure you want to delete this bot?<br></br>This action cannot be undone.</div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button variant="destructive" onClick={handleDeleteBot}>Delete</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  </div>
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Bot?</DialogTitle>
+          </DialogHeader>
+          <div>Are you sure you want to delete this bot?<br></br>This action cannot be undone.</div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteBot}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 

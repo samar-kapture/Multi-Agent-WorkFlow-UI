@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
-import { API_BASE_URL } from "@/config";
+import { API_BASE_URL, CLIENT_ID } from "@/config";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -66,8 +66,11 @@ const BotCreator = () => {
 
     if (editId) {
       // Edit mode: always fetch from API
-      fetch(`${API_BASE_URL}/multiagent-core/bot/clients/kapture/bots/${editId}`, {
-        headers: { accept: "application/json" }
+      fetch(`${API_BASE_URL}/multiagent-core/bot/clients/${CLIENT_ID}/bots/${editId}`, {
+        headers: {
+          accept: "application/json",
+          'ngrok-skip-browser-warning': '69420'
+        }
       })
         .then(res => {
           if (!res.ok) throw new Error('Failed to fetch bot');
@@ -113,8 +116,11 @@ const BotCreator = () => {
         });
     } else if (isClone && cloneBotId) {
       // Clone mode: fetch from API, but set name as (Copy) and not editing
-      fetch(`${API_BASE_URL}/multiagent-core/bot/clients/kapture/bots/${cloneBotId}`, {
-        headers: { accept: "application/json" }
+      fetch(`${API_BASE_URL}/multiagent-core/bot/clients/${CLIENT_ID}/bots/${cloneBotId}`, {
+        headers: {
+          accept: "application/json",
+          'ngrok-skip-browser-warning': '69420'
+        }
       })
         .then(res => {
           if (!res.ok) throw new Error('Failed to fetch bot');
@@ -237,8 +243,11 @@ const BotCreator = () => {
       return;
     }
     try {
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/tools/clients/kapture/tools/`, {
-        headers: { 'accept': 'application/json' }
+      const res = await fetch(`${API_BASE_URL}/multiagent-core/tools/clients/${CLIENT_ID}/tools/`, {
+        headers: {
+          'accept': 'application/json',
+          'ngrok-skip-browser-warning': '69420'
+        }
       });
       if (!res.ok) throw new Error('Failed to fetch tools');
       const data = await res.json();
@@ -310,23 +319,25 @@ const BotCreator = () => {
       let botIdToBind = editingBotId;
       if (isEditing && editingBotId) {
         // Update existing bot (PUT)
-        response = await fetch(`${API_BASE_URL}/multiagent-core/bot/clients/kapture/bots/${encodeURIComponent(editingBotId)}`,
+        response = await fetch(`${API_BASE_URL}/multiagent-core/bot/clients/${CLIENT_ID}/bots/${encodeURIComponent(editingBotId)}`,
           {
             method: 'PUT',
             headers: {
               'accept': 'application/json',
               'Content-Type': 'application/json',
+              'ngrok-skip-browser-warning': '69420'
             },
             body: JSON.stringify(payload)
           }
         );
       } else {
         // Create new bot (POST)
-        response = await fetch(`${API_BASE_URL}/multiagent-core/bot/clients/kapture/bots`, {
+        response = await fetch(`${API_BASE_URL}/multiagent-core/bot/clients/${CLIENT_ID}/bots`, {
           method: 'POST',
           headers: {
             'accept': 'application/json',
             'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': '69420'
           },
           body: JSON.stringify(payload)
         });
@@ -343,10 +354,13 @@ const BotCreator = () => {
       // Bind tools to bot
       if (botIdToBind) {
         const params = selectedTools.map(id => `tool_ids=${encodeURIComponent(id)}`).join('&');
-        const bindUrl = `${API_BASE_URL}/multiagent-core/tools/clients/kapture/bots/${botIdToBind}/tools/bind?${params}`;
+        const bindUrl = `${API_BASE_URL}/multiagent-core/tools/clients/${CLIENT_ID}/bots/${botIdToBind}/tools/bind?${params}`;
         const bindRes = await fetch(bindUrl, {
           method: 'POST',
-          headers: { 'accept': 'application/json' },
+          headers: {
+            'accept': 'application/json',
+            'ngrok-skip-browser-warning': '69420'
+          },
           body: ''
         });
         if (!bindRes.ok) throw new Error('Failed to bind tools');

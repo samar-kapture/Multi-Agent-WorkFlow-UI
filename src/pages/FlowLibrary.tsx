@@ -17,7 +17,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Settings, Plus } from "lucide-react";
-import { API_BASE_URL } from "@/config";
+import { API_BASE_URL, CLIENT_ID } from "@/config";
 
 const FlowLibrary = () => {
   const [flows, setFlows] = useState([]);
@@ -31,14 +31,20 @@ const FlowLibrary = () => {
   useEffect(() => {
     // Fetch flows
     fetch(`${API_BASE_URL}/multiagent-core/graph_structure/bot-structure`, {
-      headers: { accept: "application/json" }
+      headers: {
+        accept: "application/json",
+        'ngrok-skip-browser-warning': '69420'
+      }
     })
       .then(res => res.json())
       .then(data => setFlows(Array.isArray(data) ? data : []))
       .catch(() => setFlows([]));
     // Fetch bots
-    fetch(`${API_BASE_URL}/multiagent-core/bot/clients/kapture/bots?skip=0&limit=100`, {
-      headers: { accept: "application/json" }
+    fetch(`${API_BASE_URL}/multiagent-core/bot/clients/${CLIENT_ID}/bots?skip=0&limit=100`, {
+      headers: {
+        accept: "application/json",
+        'ngrok-skip-browser-warning': '69420'
+      }
     })
       .then(res => res.json())
       .then(data => setBots(Array.isArray(data?.bots) ? data.bots : []))
@@ -52,10 +58,10 @@ const FlowLibrary = () => {
   // Calculate last updated date
   const lastUpdated = flows.length > 0
     ? flows.reduce((latest, f) => {
-        const d = f.updated_at || f.created_at;
-        if (!d) return latest;
-        return !latest || new Date(d) > new Date(latest) ? d : latest;
-      }, null)
+      const d = f.updated_at || f.created_at;
+      if (!d) return latest;
+      return !latest || new Date(d) > new Date(latest) ? d : latest;
+    }, null)
     : null;
 
   return (
@@ -102,7 +108,7 @@ const FlowLibrary = () => {
             <div key={flow.id} className="relative group w-full">
               <button
                 className="text-left w-full"
-                onClick={() => navigate(`/flow?flow_id=${flow.id}`)}
+                onClick={() => navigate(`/flows`)}
                 style={{ background: "none", border: "none", padding: 0 }}
               >
                 <Card className="relative group transition-all duration-200 border-2 hover:border-primary/60 shadow-md cursor-pointer bg-card/90">
@@ -164,7 +170,10 @@ const FlowLibrary = () => {
                               try {
                                 const res = await fetch(`${API_BASE_URL}/multiagent-core/graph_structure/bot-structure/${flow.id}`, {
                                   method: 'DELETE',
-                                  headers: { accept: 'application/json' }
+                                  headers: {
+                                    'accept': 'application/json',
+                                    'ngrok-skip-browser-warning': '69420'
+                                  }
                                 });
                                 if (res.ok) {
                                   setFlows(prev => prev.filter(f => f.id !== flow.id));

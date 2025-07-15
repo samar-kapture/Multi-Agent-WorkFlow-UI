@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { API_BASE_URL } from "@/config";
+import { API_BASE_URL, CLIENT_ID } from "@/config";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,8 +39,11 @@ export const ToolLibrary = ({ open, onOpenChange, selectedTools, onToolSelection
 
   const loadTools = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/tools/clients/kapture/tools/`, {
-        headers: { 'accept': 'application/json' }
+      const res = await fetch(`${API_BASE_URL}/multiagent-core/tools/clients/${CLIENT_ID}/tools/`, {
+        headers: {
+          'accept': 'application/json',
+          'ngrok-skip-browser-warning': '69420'
+        }
       });
       if (!res.ok) throw new Error('Failed to fetch tools');
       const data = await res.json();
@@ -124,12 +127,13 @@ export const ToolLibrary = ({ open, onOpenChange, selectedTools, onToolSelection
         requirements: requirementsStr,
         env_vars: envVarsStr,
       });
-      const url = `${API_BASE_URL}/multiagent-core/tools/clients/kapture/update-tools/${editingTool.tool_id}?${params.toString()}`;
+      const url = `${API_BASE_URL}/multiagent-core/tools/clients/${CLIENT_ID}/update-tools/${editingTool.tool_id}?${params.toString()}`;
       const res = await fetch(url, {
         method: 'PUT',
         headers: {
           'accept': 'application/json',
           'Content-Type': 'text/plain',
+          'ngrok-skip-browser-warning': '69420'
         },
         body: toolData.code,
       });
@@ -153,11 +157,12 @@ export const ToolLibrary = ({ open, onOpenChange, selectedTools, onToolSelection
     setDeleteDialogOpen(false); // Close the dialog immediately
     setDeletingTools(prev => ({ ...prev, [toolToDelete]: true }));
     try {
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/tools/clients/kapture/tools`, {
+      const res = await fetch(`${API_BASE_URL}/multiagent-core/tools/clients/${CLIENT_ID}/tools`, {
         method: 'DELETE',
         headers: {
           'accept': 'application/json',
           'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': '69420'
         },
         body: JSON.stringify([toolToDelete]),
       });
@@ -191,8 +196,11 @@ export const ToolLibrary = ({ open, onOpenChange, selectedTools, onToolSelection
 
   const handleEditTool = async (tool: any) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/tools/clients/kapture/tools/${tool.tool_id}`, {
-        headers: { 'accept': 'application/json' }
+      const res = await fetch(`${API_BASE_URL}/multiagent-core/tools/clients/${CLIENT_ID}/tools/${tool.tool_id}`, {
+        headers: {
+          'accept': 'application/json',
+          'ngrok-skip-browser-warning': '69420'
+        }
       });
       if (!res.ok) throw new Error('Failed to fetch tool details');
       const toolData = await res.json();

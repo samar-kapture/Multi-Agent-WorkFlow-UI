@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import Editor from '@monaco-editor/react';
 import { Tool } from "@/services/api";
-import { API_BASE_URL } from "@/config";
+import { API_BASE_URL, CLIENT_ID } from "@/config";
 
 interface FunctionDialogProps {
   open: boolean;
@@ -205,12 +205,13 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
       if (toolId) {
         // UPDATE: PUT with query params, code as body
         const params = buildParams();
-        const url = `${API_BASE_URL}/multiagent-core/tools/clients/kapture/update-tools/${toolId}?${params.toString()}`;
+        const url = `${API_BASE_URL}/multiagent-core/tools/clients/${CLIENT_ID}/update-tools/${toolId}?${params.toString()}`;
         const response = await fetch(url, {
           method: "PUT",
           headers: {
             accept: "application/json",
-            "Content-Type": "text/plain"
+            "Content-Type": "text/plain",
+            'ngrok-skip-browser-warning': '69420'
           },
           body: code
         });
@@ -246,12 +247,13 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
       }
       // CREATE: POST with query params, code as body, Content-Type: text/plain
       const params = buildParams();
-      const url = `${API_BASE_URL}/multiagent-core/tools/clients/kapture/deploy-tools?${params.toString()}`;
+      const url = `${API_BASE_URL}/multiagent-core/tools/clients/${CLIENT_ID}/deploy-tools?${params.toString()}`;
       const response = await fetch(url, {
         method: "POST",
         headers: {
           accept: "application/json",
-          "Content-Type": "text/plain"
+          "Content-Type": "text/plain",
+          // 'ngrok-skip-browser-warning': '69420'
         },
         body: code
       });

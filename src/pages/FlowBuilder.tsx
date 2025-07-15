@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { API_BASE_URL } from "@/config";
+import { API_BASE_URL, CLIENT_ID } from "@/config";
 import {
   ReactFlow,
   MiniMap,
@@ -170,8 +170,11 @@ const FlowBuilder = () => {
   useEffect(() => {
     loadAvailableBots();
     // Fetch all bots for node name mapping
-    fetch(`${API_BASE_URL}/multiagent-core/bot/clients/kapture/bots?skip=0&limit=100`, {
-      headers: { accept: 'application/json' }
+    fetch(`${API_BASE_URL}/multiagent-core/bot/clients/${CLIENT_ID}/bots?skip=0&limit=100`, {
+      headers: {
+        'accept': 'application/json',
+        'ngrok-skip-browser-warning': '69420'
+      }
     })
       .then(res => res.json())
       .then(data => setAllBots(Array.isArray(data?.bots) ? data.bots : []))
@@ -192,7 +195,10 @@ const FlowBuilder = () => {
       return;
     }
     fetch(`${API_BASE_URL}/multiagent-core/graph_structure/bot-structure`, {
-      headers: { accept: 'application/json' }
+      headers: {
+        'accept': 'application/json',
+        'ngrok-skip-browser-warning': '69420'
+      }
     })
       .then(res => res.json())
       .then((data) => {
@@ -263,8 +269,11 @@ const FlowBuilder = () => {
 
   const loadAvailableBots = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/bot/clients/kapture/bots?skip=0&limit=100`, {
-        headers: { 'accept': 'application/json' }
+      const res = await fetch(`${API_BASE_URL}/multiagent-core/bot/clients/${CLIENT_ID}/bots?skip=0&limit=100`, {
+        headers: {
+          'accept': 'application/json',
+          'ngrok-skip-browser-warning': '69420'
+        }
       });
       const botsData = await res.json();
       const botsArr = Array.isArray(botsData?.bots) ? botsData.bots : [];
@@ -349,11 +358,12 @@ const FlowBuilder = () => {
       const configId = flowName.replace(/\s+/g, '_');
       await fetch(`${API_BASE_URL}/multiagent-core/graph_structure/bot-structure`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "accept": "application/json" },
+        headers: { "Content-Type": "application/json", "accept": "application/json", 'ngrok-skip-browser-warning': '69420' },
         body: JSON.stringify({
           client_id: "kapture",
           config_id: configId,
           structure: bot_structure,
+          welcome_message: messageConfig.welcome_message,
         }),
       });
 
