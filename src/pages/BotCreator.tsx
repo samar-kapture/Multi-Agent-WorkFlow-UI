@@ -52,107 +52,52 @@ const BotCreator = () => {
   const toneOptions = ["casual", "professional", "friendly"];
 
   // Load all tools on mount and whenever selectedTools changes
-  // Always reload tools when selectedTools changes, but also on mount and when editing bot changes
   useEffect(() => {
     loadTools();
-    // eslint-disable-next-line
-  }, [selectedTools, isEditing, editingBotId]);
+  }, [selectedTools]);
 
-useEffect(() => {
-  // Always check for edit param first, then clone, then fallback to state
-  const editId = searchParams.get('edit');
-  const stateBot = location.state?.bot;
-  const isClone = location.state?.isClone;
-  const cloneBotId = location.state?.bot_id;
-  const botId = editId || cloneBotId;
+  useEffect(() => {
+    // Always check for edit param first, then clone, then fallback to state
+    const editId = searchParams.get('edit');
+    const stateBot = location.state?.bot;
+    const isClone = location.state?.isClone;
+    const cloneBotId = location.state?.bot_id;
+    const botId = editId || cloneBotId;
 
-  if (editId) {
-    // Edit mode: always fetch from API
-    fetch(`${API_BASE_URL}/multiagent-core/bot/clients/kapture/bots/${editId}`, {
-      headers: { accept: "application/json" }
-    })
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch bot');
-        return res.json();
+    if (editId) {
+      // Edit mode: always fetch from API
+      fetch(`${API_BASE_URL}/multiagent-core/bot/clients/kapture/bots/${editId}`, {
+        headers: { accept: "application/json" }
       })
-      .then(bot => {
-        setBotName(bot.name || "");
-        setBotDescription(bot.description || "");
-        setAgentPrompt(bot.user_prompt || "");
-        setSelectedModel(bot.llm_model || "OpenAI");
-        setMaxToken(bot.max_token || 400);
-        setTemperature(bot.temperature || 0.3);
-        setClosingKeyword(bot.closing_keyword || "");
-        setTone(bot.tone || "casual");
-        setMessageConfig({
-          welcome_message: bot.welcome_message ?? '',
-          closing_message: bot.closing_message ?? '',
-          reengagement_messages: bot.reengagement_messages ?? []
-        });
-        setSelectedTools(bot.tools || bot.functions || []);
-        setIsEditing(true);
-        setEditingBotId(editId);
-      })
-      .catch(() => {
-        // If fetch fails, clear form
-        setBotName("");
-        setBotDescription("");
-        setAgentPrompt("");
-        setSelectedModel("OpenAI");
-        setMaxToken(400);
-        setTemperature(0.3);
-        setClosingKeyword("");
-        setTone("casual");
-        setMessageConfig({ welcome_message: '', closing_message: '', reengagement_messages: [] });
-        setSelectedTools([]);
-        setIsEditing(false);
-        setEditingBotId(null);
-      });
-  } else if (isClone && cloneBotId) {
-    // Clone mode: fetch from API, but set name as (Copy) and not editing
-    fetch(`${API_BASE_URL}/multiagent-core/bot/clients/kapture/bots/${cloneBotId}`, {
-      headers: { accept: "application/json" }
-    })
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch bot');
-        return res.json();
-      })
-      .then(bot => {
-        setBotName(`${bot.name} (Copy)` || "");
-        setBotDescription(bot.description || "");
-        setAgentPrompt(bot.user_prompt || "");
-        setSelectedModel(bot.llm_model || "OpenAI");
-        setMaxToken(bot.max_token || 400);
-        setTemperature(bot.temperature || 0.3);
-        setClosingKeyword(bot.closing_keyword || "");
-        setTone(bot.tone || "casual");
-        setMessageConfig({
-          welcome_message: bot.welcome_message ?? '',
-          closing_message: bot.closing_message ?? '',
-          reengagement_messages: bot.reengagement_messages ?? []
-        });
-        setSelectedTools(bot.tools || bot.functions || []);
-        setIsEditing(false);
-        setEditingBotId(null);
-      })
-      .catch(() => {
-        // If fetch fails, fallback to stateBot if available
-        if (stateBot) {
-          setBotName(`${stateBot.name} (Copy)` || "");
-          setBotDescription(stateBot.description || "");
-          setAgentPrompt(stateBot.user_prompt || "");
-          setSelectedModel(stateBot.llm_model || "OpenAI");
-          setMaxToken(stateBot.max_token || 400);
-          setTemperature(stateBot.temperature || 0.3);
-          setClosingKeyword(stateBot.closing_keyword || "");
-          setTone(stateBot.tone || "casual");
+        .then(res => {
+          if (!res.ok) throw new Error('Failed to fetch bot');
+          return res.json();
+        })
+        .then(bot => {
+          setBotName(bot.name || "");
+          setBotDescription(bot.description || "");
+          setAgentPrompt(bot.user_prompt || "");
+          setSelectedModel(bot.llm_model || "OpenAI");
+          setMaxToken(bot.max_token || 400);
+          setTemperature(bot.temperature || 0.3);
+          setClosingKeyword(bot.closing_keyword || "");
+          setTone(bot.tone || "casual");
           setMessageConfig({
-            welcome_message: stateBot.welcome_message ?? '',
-            closing_message: stateBot.closing_message ?? '',
-            reengagement_messages: stateBot.reengagement_messages ?? []
+            welcome_message: bot.welcome_message ?? '',
+            closing_message: bot.closing_message ?? '',
+            reengagement_messages: bot.reengagement_messages ?? []
           });
-          setSelectedTools(stateBot.tools || stateBot.functions || []);
-        } else {
+          // Ensure selectedTools is always an array of string IDs
+          const toolIds = Array.isArray(bot.tools || bot.functions)
+            ? (bot.tools || bot.functions).map((t: any) => typeof t === 'object' ? t.tool_id || t.id : t)
+            : [];
+          setSelectedTools(toolIds);
+          setTimeout(() => loadTools(), 0);
+          setIsEditing(true);
+          setEditingBotId(editId);
+        })
+        .catch(() => {
+          // If fetch fails, clear form
           setBotName("");
           setBotDescription("");
           setAgentPrompt("");
@@ -163,110 +108,158 @@ useEffect(() => {
           setTone("casual");
           setMessageConfig({ welcome_message: '', closing_message: '', reengagement_messages: [] });
           setSelectedTools([]);
-        }
-        setIsEditing(false);
-        setEditingBotId(null);
+          setIsEditing(false);
+          setEditingBotId(null);
+        });
+    } else if (isClone && cloneBotId) {
+      // Clone mode: fetch from API, but set name as (Copy) and not editing
+      fetch(`${API_BASE_URL}/multiagent-core/bot/clients/kapture/bots/${cloneBotId}`, {
+        headers: { accept: "application/json" }
+      })
+        .then(res => {
+          if (!res.ok) throw new Error('Failed to fetch bot');
+          return res.json();
+        })
+        .then(bot => {
+          setBotName(`${bot.name} (Copy)` || "");
+          setBotDescription(bot.description || "");
+          setAgentPrompt(bot.user_prompt || "");
+          setSelectedModel(bot.llm_model || "OpenAI");
+          setMaxToken(bot.max_token || 400);
+          setTemperature(bot.temperature || 0.3);
+          setClosingKeyword(bot.closing_keyword || "");
+          setTone(bot.tone || "casual");
+          setMessageConfig({
+            welcome_message: bot.welcome_message ?? '',
+            closing_message: bot.closing_message ?? '',
+            reengagement_messages: bot.reengagement_messages ?? []
+          });
+          const toolIds2 = Array.isArray(bot.tools || bot.functions)
+            ? (bot.tools || bot.functions).map((t: any) => typeof t === 'object' ? t.tool_id || t.id : t)
+            : [];
+          setSelectedTools(toolIds2);
+          setTimeout(() => loadTools(), 0);
+          setIsEditing(false);
+          setEditingBotId(null);
+        })
+        .catch(() => {
+          // If fetch fails, fallback to stateBot if available
+          if (stateBot) {
+            setBotName(`${stateBot.name} (Copy)` || "");
+            setBotDescription(stateBot.description || "");
+            setAgentPrompt(stateBot.user_prompt || "");
+            setSelectedModel(stateBot.llm_model || "OpenAI");
+            setMaxToken(stateBot.max_token || 400);
+            setTemperature(stateBot.temperature || 0.3);
+            setClosingKeyword(stateBot.closing_keyword || "");
+            setTone(stateBot.tone || "casual");
+            setMessageConfig({
+              welcome_message: stateBot.welcome_message ?? '',
+              closing_message: stateBot.closing_message ?? '',
+              reengagement_messages: stateBot.reengagement_messages ?? []
+            });
+            const toolIds3 = Array.isArray(stateBot.tools || stateBot.functions)
+              ? (stateBot.tools || stateBot.functions).map((t: any) => typeof t === 'object' ? t.tool_id || t.id : t)
+              : [];
+            setSelectedTools(toolIds3);
+            setTimeout(() => loadTools(), 0);
+          } else {
+            setBotName("");
+            setBotDescription("");
+            setAgentPrompt("");
+            setSelectedModel("OpenAI");
+            setMaxToken(400);
+            setTemperature(0.3);
+            setClosingKeyword("");
+            setTone("casual");
+            setMessageConfig({ welcome_message: '', closing_message: '', reengagement_messages: [] });
+            setSelectedTools([]);
+            setTimeout(() => loadTools(), 0);
+          }
+          setIsEditing(false);
+          setEditingBotId(null);
+        });
+    } else if (stateBot) {
+      // Fallback: prefill from navigation state (for clone)
+      setBotName(isClone ? `${stateBot.name} (Copy)` : stateBot.name || "");
+      setBotDescription(stateBot.description || "");
+      setAgentPrompt(stateBot.user_prompt || "");
+      setSelectedModel(stateBot.llm_model || "OpenAI");
+      setMaxToken(stateBot.max_token || 400);
+      setTemperature(stateBot.temperature || 0.3);
+      setClosingKeyword(stateBot.closing_keyword || "");
+      setTone(stateBot.tone || "casual");
+      setMessageConfig({
+        welcome_message: stateBot.welcome_message ?? '',
+        closing_message: stateBot.closing_message ?? '',
+        reengagement_messages: stateBot.reengagement_messages ?? []
       });
-  } else if (stateBot) {
-    // Fallback: prefill from navigation state (for clone)
-    setBotName(isClone ? `${stateBot.name} (Copy)` : stateBot.name || "");
-    setBotDescription(stateBot.description || "");
-    setAgentPrompt(stateBot.user_prompt || "");
-    setSelectedModel(stateBot.llm_model || "OpenAI");
-    setMaxToken(stateBot.max_token || 400);
-    setTemperature(stateBot.temperature || 0.3);
-    setClosingKeyword(stateBot.closing_keyword || "");
-    setTone(stateBot.tone || "casual");
-    setMessageConfig({
-      welcome_message: stateBot.welcome_message ?? '',
-      closing_message: stateBot.closing_message ?? '',
-      reengagement_messages: stateBot.reengagement_messages ?? []
-    });
-    setSelectedTools(stateBot.tools || stateBot.functions || []);
-    setIsEditing(false);
-    setEditingBotId(null);
-  } else {
-    // If nothing, clear form
-    setBotName("");
-    setBotDescription("");
-    setAgentPrompt("");
-    setSelectedModel("OpenAI");
-    setMaxToken(400);
-    setTemperature(0.3);
-    setClosingKeyword("");
-    setTone("casual");
-    setMessageConfig({ welcome_message: '', closing_message: '', reengagement_messages: [] });
-    setSelectedTools([]);
-    setIsEditing(false);
-    setEditingBotId(null);
-  }
-}, [location.state, searchParams]);
+      const toolIds4 = Array.isArray(stateBot.tools || stateBot.functions)
+        ? (stateBot.tools || stateBot.functions).map((t: any) => typeof t === 'object' ? t.tool_id || t.id : t)
+        : [];
+      setSelectedTools(toolIds4);
+      setTimeout(() => loadTools(), 0);
+      setIsEditing(false);
+      setEditingBotId(null);
+    } else {
+      // If nothing, clear form
+      setBotName("");
+      setBotDescription("");
+      setAgentPrompt("");
+      setSelectedModel("OpenAI");
+      setMaxToken(400);
+      setTemperature(0.3);
+      setClosingKeyword("");
+      setTone("casual");
+      setMessageConfig({ welcome_message: '', closing_message: '', reengagement_messages: [] });
+      setSelectedTools([]);
+      setIsEditing(false);
+      setEditingBotId(null);
+    }
+  }, [location.state, searchParams]);
+
+  // Always load all tools on mount (not just when selectedTools changes)
+  useEffect(() => {
+    loadTools();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Also load tools whenever selectedTools changes (to update the list)
+  useEffect(() => {
+    loadTools();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTools]);
 
   // Always load the full tool objects for the selected tool IDs (fetch from backend)
   const loadTools = async () => {
+    if (!selectedTools.length) {
+      setAllTools([]);
+      return;
+    }
     try {
-      // Fetch all tools from backend
       const res = await fetch(`${API_BASE_URL}/multiagent-core/tools/clients/kapture/tools/`, {
         headers: { 'accept': 'application/json' }
       });
       if (!res.ok) throw new Error('Failed to fetch tools');
       const data = await res.json();
       const toolsArr = Array.isArray(data?.tools) ? data.tools : Array.isArray(data) ? data : [];
-
-      // If selectedTools contains full tool objects (from bot details), merge them in
-      let selectedToolObjs: any[] = [];
-      if (
-        Array.isArray(selectedTools) &&
-        selectedTools.length > 0 &&
-        typeof selectedTools[0] === 'object' &&
-        selectedTools[0] !== null &&
-        (selectedTools[0] && (('tool_id' in selectedTools[0]) || ('id' in selectedTools[0])))
-      ) {
-        selectedToolObjs = selectedTools as any[];
-      } else if (
-        Array.isArray(selectedTools) &&
-        selectedTools.length > 0 &&
-        typeof selectedTools[0] === 'string'
-      ) {
-        // If only IDs, try to find them in toolsArr
-        selectedToolObjs = toolsArr.filter((t: any) => selectedTools.includes(t.tool_id));
-      }
-
-      // Merge: show all tools, but mark selected
-      const mapped = toolsArr.map((t: any) => ({
-        id: t.tool_id,
-        name: t.original_name || t.name,
-        description: t.description,
-        createdAt: t.created_at || t.createdAt,
-        ...t,
-        isSelected: selectedToolObjs.some(sel => (sel.tool_id || sel.id) === t.tool_id)
-      }));
-
-      // Add any selected tools not in toolsArr (e.g. just created or from bot details)
-      selectedToolObjs.forEach(sel => {
-        if (!mapped.some(t => t.id === (sel.tool_id || sel.id))) {
-          mapped.push({
-            id: sel.tool_id || sel.id,
-            name: sel.original_name || sel.name,
-            description: sel.description,
-            createdAt: sel.created_at || sel.createdAt,
-            ...sel,
-            isSelected: true
-          });
-        }
-      });
-
+      // Map API fields to internal Tool type and filter for selectedTools (string or object)
+      const mapped = toolsArr
+        .filter((t: any) =>
+          selectedTools.some((sel: any) =>
+            sel && typeof sel === 'object'
+              ? (sel.tool_id === t.tool_id || sel.id === t.tool_id)
+              : sel === t.tool_id
+          )
+        )
+        .map((t: any) => ({
+          id: t.tool_id,
+          name: t.original_name || t.name,
+          description: t.description,
+          createdAt: t.created_at || t.createdAt,
+          ...t
+        }));
       setAllTools(mapped);
-      // If selectedTools is array of objects, update selectedTools to be array of IDs for consistency
-      if (
-        Array.isArray(selectedTools) &&
-        selectedTools.length > 0 &&
-        typeof selectedTools[0] === 'object' &&
-        selectedTools[0] !== null &&
-        ((selectedTools[0] as any).tool_id || (selectedTools[0] as any).id)
-      ) {
-        setSelectedTools(selectedToolObjs.map((sel: any) => sel.tool_id || sel.id));
-      }
     } catch (e) {
       setAllTools([]);
     }
@@ -348,7 +341,7 @@ useEffect(() => {
       }
 
       // Bind tools to bot
-      if (botIdToBind && selectedTools.length > 0) {
+      if (botIdToBind) {
         const params = selectedTools.map(id => `tool_ids=${encodeURIComponent(id)}`).join('&');
         const bindUrl = `${API_BASE_URL}/multiagent-core/tools/clients/kapture/bots/${botIdToBind}/tools/bind?${params}`;
         const bindRes = await fetch(bindUrl, {
@@ -451,7 +444,14 @@ useEffect(() => {
   };
 
   const getSelectedToolsData = () => {
-    return allTools.filter(tool => selectedTools.includes(tool.id));
+    // Defensive: selectedTools may contain string IDs or tool objects, and sel may be null
+    return allTools.filter(tool =>
+      selectedTools.some((sel: any) =>
+        sel && typeof sel === 'object'
+          ? (sel.tool_id === tool.id || sel.id === tool.id)
+          : sel === tool.id
+      )
+    );
   };
 
   return (
@@ -648,14 +648,6 @@ useEffect(() => {
                         <Settings className="w-4 h-4" />
                         Manage Tools
                       </Button>
-                      <Button
-                        onClick={() => setShowFunctionDialog(true)}
-                        variant="outline"
-                        className="gap-2 px-4"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Create Tool
-                      </Button>
                     </div>
                   </div>
                 </CardHeader>
@@ -669,25 +661,25 @@ useEffect(() => {
                   ) : null}
                   {/* Always show selected tools summary, even if empty */}
                   <div className="space-y-3 mt-2">
-                      {getSelectedToolsData().map((tool) => (
-                        <div key={tool.id} className="flex items-center justify-between p-4 border border-border rounded-xl bg-card/50">
-                          <div className="flex-1">
-                            <div className="font-medium text-foreground">{tool.name}</div>
-                            <div className="text-sm text-muted-foreground mt-1">{tool.description}</div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                              Created: {tool.createdAt ? new Date(tool.createdAt).toLocaleDateString() : ''}
-                            </div>
+                    {getSelectedToolsData().map((tool) => (
+                      <div key={tool.id} className="flex items-center justify-between p-4 border border-border rounded-xl bg-card/50">
+                        <div className="flex-1">
+                          <div className="font-medium text-foreground">{tool.name}</div>
+                          <div className="text-sm text-muted-foreground mt-1">{tool.description}</div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            Created: {tool.createdAt ? new Date(tool.createdAt).toLocaleDateString() : ''}
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveTool(tool.id)}
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
                         </div>
-                      ))}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveTool(tool.id)}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
@@ -747,7 +739,7 @@ useEffect(() => {
                     )}
                   </div>
 
-                  <div className="space-y-3">
+                  {/* <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div>
                         <Label>Message Configuration</Label>
@@ -765,7 +757,7 @@ useEffect(() => {
                         Configure
                       </Button>
                     </div>
-                  </div>
+                  </div> */}
                 </CardContent>
               </Card>
             </div>

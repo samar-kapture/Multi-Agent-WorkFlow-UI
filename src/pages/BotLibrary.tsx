@@ -260,7 +260,12 @@ const BotLibrary = () => {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Last Updated</p>
                 <p className="text-sm font-bold">
-                  {bots.length > 0 ? formatDate(Math.max(...bots.map(b => new Date(b.updatedAt).getTime())).toString()) : 'N/A'}
+                  {(() => {
+                    const validBots = bots.filter(b => b.updatedAt && !isNaN(new Date(b.updatedAt).getTime()));
+                    if (validBots.length === 0) return 'N/A';
+                    const maxDate = new Date(Math.max(...validBots.map(b => new Date(b.updatedAt).getTime())));
+                    return formatDate(maxDate.toISOString());
+                  })()}
                 </p>
               </div>
               <Book className="w-8 h-8 text-warning" />
@@ -375,7 +380,7 @@ const BotLibrary = () => {
         <DialogHeader>
           <DialogTitle>Delete Bot?</DialogTitle>
         </DialogHeader>
-        <div>Are you sure you want to delete this bot? This action cannot be undone.</div>
+        <div>Are you sure you want to delete this bot?<br></br>This action cannot be undone.</div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
           <Button variant="destructive" onClick={handleDeleteBot}>Delete</Button>

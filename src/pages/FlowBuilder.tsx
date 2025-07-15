@@ -1,4 +1,5 @@
 import { useCallback, useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { API_BASE_URL } from "@/config";
 import {
   ReactFlow,
@@ -18,10 +19,11 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import { Button } from "@/components/ui/button";
+import { MessageConfigDialog } from "@/components/MessageConfigDialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Folder, Save, Play, Plus, Download, Trash2, X } from "lucide-react";
+import { Folder, Save, Play, Plus, Download, Trash2, X, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiService, Bot as BotType } from "@/services/api";
 
@@ -103,9 +105,27 @@ function buildBotStructure(nodes: Node[], edges: Edge[]): Record<string, string[
 }
 
 const FlowBuilder = () => {
+  // Message config state (same as BotCreator)
+  const [messageConfig, setMessageConfig] = useState<any>({ welcome_message: '', closing_message: '', reengagement_messages: [] });
+  const [showMessageDialog, setShowMessageDialog] = useState(false);
+  // Handler for saving message config
+  const handleMessageConfig = (config: any) => {
+    setMessageConfig({
+      welcome_message: config?.welcomeMessage ?? '',
+      closing_message: config?.closingMessage ?? '',
+      reengagement_messages: Array.isArray(config?.reEngageMessages) ? config.reEngageMessages : []
+    });
+    toast({
+      title: "Message Configuration Saved",
+      description: "Message settings have been updated.",
+    });
+  };
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selectedEdge, setSelectedEdge] = useState<string | null>(null);
+  const [isPrefilled, setIsPrefilled] = useState(false);
+  const [allBots, setAllBots] = useState([]);
+  const location = useLocation();
   // Edge removal handler
   const onEdgeClick = useCallback((event, edge) => {
     event.stopPropagation();
@@ -149,10 +169,97 @@ const FlowBuilder = () => {
 
   useEffect(() => {
     loadAvailableBots();
+    // Fetch all bots for node name mapping
+    fetch(`${API_BASE_URL}/multiagent-core/bot/clients/kapture/bots?skip=0&limit=100`, {
+      headers: { accept: 'application/json' }
+    })
+      .then(res => res.json())
+      .then(data => setAllBots(Array.isArray(data?.bots) ? data.bots : []))
+      .catch(() => setAllBots([]));
     const handleFocus = () => loadAvailableBots();
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
   }, []);
+
+  // Prefill graph if flow_id is present in query string
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const flowId = params.get('flow_id');
+    if (!flowId || isPrefilled) return;
+    // Wait for allBots to be loaded before reconstructing nodes
+    if (!allBots || allBots.length === 0) {
+      // Try again after allBots is loaded
+      return;
+    }
+    fetch(`${API_BASE_URL}/multiagent-core/graph_structure/bot-structure`, {
+      headers: { accept: 'application/json' }
+    })
+      .then(res => res.json())
+      .then((data) => {
+        const flow = Array.isArray(data) ? data.find(f => f.id === flowId) : null;
+        if (!flow || !flow.structure) return;
+        // Reconstruct nodes and edges from structure
+        const structure = flow.structure;
+        const nodeIds = Object.keys(structure).filter(id => id !== '__start__');
+        // Map id to name (use id for both availableBots and allBots)
+        const botIdToName = {};
+        allBots.forEach(bot => {
+          if (bot.id) botIdToName[bot.id] = bot.name;
+          if (bot.bot_id) botIdToName[bot.bot_id] = bot.name;
+        });
+        console.log('allBots:', allBots);
+        console.log('botIdToName mapping:', botIdToName);
+        // Build nodes
+        const newNodes: Node[] = [
+          {
+            id: '__start__',
+            type: 'default',
+            position: { x: 250, y: 0 },
+            data: { label: 'START', description: 'Start Node' },
+            style: {
+              background: 'hsl(142, 76%, 36%)', color: 'white', border: '1px solid hsl(217 91% 50%)', borderRadius: '20px', padding: '10px',
+            }
+          },
+          {
+            id: '__end__',
+            type: 'default',
+            position: { x: 250, y: 350 },
+            data: { label: 'END', description: 'END Node' },
+            style: {
+              background: 'hsl(0, 72%, 51%)', color: 'white', border: '1px solid hsl(262 83% 48%)', borderRadius: '20px', padding: '10px',
+            }
+          },
+          ...nodeIds.filter(id => id !== '__end__').map((id, idx) => {
+            // Only show bot name if id matches a bot id, else show id
+            const label = botIdToName[id] || id;
+            console.log('Node', id, 'label:', label);
+            return {
+              id,
+              type: 'default',
+              position: { x: 200 + 100 * idx, y: 100 + 60 * idx },
+              data: { label, description: '' },
+              style: {
+                background: 'hsl(217, 91%, 60%)', color: 'white', border: '1px solid hsl(217, 91%, 60%)', borderRadius: '8px', padding: '10px',
+              }
+            };
+          })
+        ];
+        // Build edges
+        const newEdges: Edge[] = [];
+        Object.entries(structure).forEach(([source, targets]) => {
+          if (!Array.isArray(targets)) return;
+          targets.forEach(target => {
+            if (target && source !== target) {
+              newEdges.push({ id: `${source}->${target}`, source, target, type: 'default' });
+            }
+          });
+        });
+        setNodes(newNodes);
+        setEdges(newEdges);
+        setFlowName(flow.config_id || 'Untitled Flow');
+        setIsPrefilled(true);
+      });
+  }, [location.search, isPrefilled, setNodes, setEdges, allBots]);
 
   const loadAvailableBots = async () => {
     try {
@@ -162,7 +269,7 @@ const FlowBuilder = () => {
       const botsData = await res.json();
       const botsArr = Array.isArray(botsData?.bots) ? botsData.bots : [];
       setAvailableBots(botsArr.map(apiBot => ({
-        id: apiBot.bot_id,
+        id: apiBot.id || apiBot.bot_id, // prefer id, fallback to bot_id
         name: apiBot.name,
         description: apiBot.description,
         agentPrompt: apiBot.final_prompt,
@@ -330,12 +437,16 @@ const FlowBuilder = () => {
             <Save className="w-3 h-3" />
             Save
           </Button>
-          <Button onClick={runFlow} size="sm" variant="outline" className="flex-1 gap-1">
+          {/* <Button onClick={runFlow} size="sm" variant="outline" className="flex-1 gap-1">
             <Play className="w-3 h-3" />
             Run
           </Button>
           <Button onClick={exportFlow} size="sm" variant="outline" className="gap-1">
             <Download className="w-3 h-3" />
+          </Button> */}
+          <Button onClick={() => setShowMessageDialog(true)} variant="outline" className="gap-2">
+            <Settings className="w-4 h-4" />
+            Configure Messages
           </Button>
         </div>
 
@@ -347,34 +458,36 @@ const FlowBuilder = () => {
               Drag these bots into your workflow
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2 max-h-120 overflow-auto">
-            {availableBots.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <p className="text-sm">No bots available</p>
-                <p className="text-xs mt-1">Create a bot first to add it to your flow</p>
-              </div>
-            ) : (
-              availableBots.map((bot, index) => (
-                <div
-                  key={bot.id}
-                  className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors"
-                  style={{ overflow: "hidden" }}
-                  onClick={() => addBotToFlow(bot, index)}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: getNodeColor(index) }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-sm font-medium block break-words">{bot.name}</span>
-                      <span className="text-xs text-muted-foreground block break-words">{bot.description}</span>
-                    </div>
-                  </div>
-                  <Plus className="w-4 h-4 text-muted-foreground shrink-0" />
+          <CardContent className="space-y-2 p-0">
+            <div style={{ maxHeight: 260, overflowY: 'auto', padding: '0.75rem' }}>
+              {availableBots.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p className="text-sm">No bots available</p>
+                  <p className="text-xs mt-1">Create a bot first to add it to your flow</p>
                 </div>
-              ))
-            )}
+              ) : (
+                availableBots.map((bot, index) => (
+                  <div
+                    key={bot.id}
+                    className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-accent/50 cursor-pointer transition-colors mb-2"
+                    style={{ overflow: "hidden" }}
+                    onClick={() => addBotToFlow(bot, index)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-4 h-4 rounded-full"
+                        style={{ backgroundColor: getNodeColor(index) }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-medium block break-words">{bot.name}</span>
+                        <span className="text-xs text-muted-foreground block break-words">{bot.description}</span>
+                      </div>
+                    </div>
+                    <Plus className="w-4 h-4 text-muted-foreground shrink-0" />
+                  </div>
+                ))
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -423,8 +536,8 @@ const FlowBuilder = () => {
                 <Trash2 className="w-4 h-4" />
                 {selectedNode
                   ? (selectedNode === "__start__" || selectedNode === "__end__"
-                      ? `Cannot Remove ${selectedNode === "__start__" ? 'Start' : 'End'} Node`
-                      : 'Remove Selected Node')
+                    ? `Cannot Remove ${selectedNode === "__start__" ? 'Start' : 'End'} Node`
+                    : 'Remove Selected Node')
                   : 'Remove Selected Edge'}
               </Button>
             </CardContent>
@@ -446,6 +559,18 @@ const FlowBuilder = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* MessageConfigDialog */}
+      <MessageConfigDialog
+        open={showMessageDialog}
+        onOpenChange={setShowMessageDialog}
+        onSave={handleMessageConfig}
+        initialConfig={{
+          welcomeMessage: messageConfig.welcome_message ?? '',
+          closingMessage: messageConfig.closing_message ?? '',
+          reEngageMessages: Array.isArray(messageConfig.reengagement_messages) ? messageConfig.reengagement_messages : []
+        }}
+      />
 
       {/* Flow Canvas */}
       <div className="flex-1 relative bg-background">

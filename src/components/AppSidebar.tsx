@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Bot, Book, Folder } from "lucide-react";
+import { Bot, Book, Folder, SendHorizonal } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -11,6 +11,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { SidebarChat } from "./SidebarChat";
 
 const navigationItems = [
   {
@@ -20,16 +21,22 @@ const navigationItems = [
     description: "Browse and manage your created bots"
   },
   {
-    title: "Create Bot",
-    url: "/create",
-    icon: Bot,
-    description: "Build new intelligent agents"
-  },
-  {
-    title: "Flow Builder",
-    url: "/flow",
+    title: "Flow Library",
+    url: "/flows",
     icon: Folder,
-    description: "Arrange bots in graphical workflows"
+    description: "Browse and manage your created flows"
+  },
+  // {
+  //   title: "Create Bot",
+  //   url: "/create",
+  //   icon: Bot,
+  //   description: "Build new intelligent agents"
+  // },
+  {
+    title: "Agent Chat",
+    url: "/chat",
+    icon: SendHorizonal,
+    description: "Chat with your agent via websocket"
   },
 ];
 
@@ -41,38 +48,13 @@ export function AppSidebar() {
 
   const isActive = (path: string) => currentPath === path;
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
-    isActive 
-      ? "bg-primary text-primary-foreground font-medium shadow-glow" 
-      : "hover:bg-accent/50 hover:text-accent-foreground";
+    isActive ? "bg-primary text-white" : "hover:bg-muted";
 
   return (
-    <Sidebar
-      className={isCollapsed ? "w-24" : "w-72"}
-      collapsible="icon"
-      style={isCollapsed ? { width: '6rem', minWidth: '6rem', maxWidth: '6rem' } : { width: '18rem', minWidth: '18rem', maxWidth: '18rem' }}
-    >
-      <SidebarContent className="bg-gradient-card border-r border-border">
-        {/* Header */}
-        <div className="p-6 border-b border-border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center shadow-lg">
-              <Bot className="w-5 h-5 text-white" />
-            </div>
-            {!isCollapsed && (
-              <div>
-                <h1 className="text-lg font-semibold bg-gradient-primary bg-clip-text text-transparent">
-                  Agent Builder
-                </h1>
-                <p className="text-xs text-muted-foreground">
-                  Build intelligent multi agent systems
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <SidebarGroup className="p-4">
-          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground px-2 py-2 mb-3">
+    <Sidebar>
+      <SidebarContent>
+        <SidebarGroup className="px-4 pt-6 pb-2">
+          <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground px-2 py-2 mb-4 tracking-wide uppercase">
             {!isCollapsed ? "Navigation" : ""}
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -84,15 +66,15 @@ export function AppSidebar() {
                       to={item.url} 
                       end 
                       className={({ isActive }) => 
-                        `flex items-center px-0 py-3 rounded-lg transition-all duration-200 ${getNavCls({ isActive })}`
+                        `flex items-center px-0 py-5 min-h-[56px] rounded-lg transition-all duration-200 text-base ${getNavCls({ isActive })}`
                       }
                     >
-                      <div className={`flex items-center w-full ${isCollapsed ? 'justify-center' : 'justify-start gap-3'}`} style={isCollapsed ? { justifyContent: 'center' } : {}}>
-                        <item.icon className="w-5 h-5 shrink-0" />
+                      <div className={`flex items-center w-full ${isCollapsed ? 'justify-center' : 'justify-start gap-4'}`} style={isCollapsed ? { justifyContent: 'center' } : {}}>
+                        <item.icon className="w-6 h-6 shrink-0" />
                         {!isCollapsed && (
                           <div className="flex-1 text-left min-w-0">
-                            <div className="text-sm font-medium truncate">{item.title}</div>
-                            <div className="text-xs text-muted-foreground opacity-75 truncate">{item.description}</div>
+                            <div className="text-base font-semibold truncate">{item.title}</div>
+                            <div className="text-xs text-muted-foreground opacity-80 truncate mt-0.5">{item.description}</div>
                           </div>
                         )}
                       </div>
@@ -105,11 +87,11 @@ export function AppSidebar() {
         </SidebarGroup>
 
         {/* Company Branding */}
-        <div className="mt-auto p-6 border-t border-border">
-          <div className={`flex items-center justify-center gap-2 ${isCollapsed ? '' : ''}`}>
-            <img src="/logo.png" alt="Kapture CX Logo" className="w-8 h-8 object-contain" />
+        <div className="mt-auto px-6 py-5 border-t border-border">
+          <div className={`flex items-center justify-center gap-3 ${isCollapsed ? '' : ''}`}>
+            <img src="/logo.png" alt="Kapture CX Logo" className="w-9 h-9 object-contain" />
             {!isCollapsed && (
-              <span className="text-xs font-semibold text-primary tracking-wide">Kapture CX</span>
+              <span className="text-sm font-bold text-primary tracking-wide">Kapture CX</span>
             )}
           </div>
         </div>

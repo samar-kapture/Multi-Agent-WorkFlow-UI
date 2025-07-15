@@ -5,9 +5,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+
 import BotCreator from "./pages/BotCreator";
 import BotLibrary from "./pages/BotLibrary";
 import FlowBuilder from "./pages/FlowBuilder";
+import FlowLibrary from "./pages/FlowLibrary";
+import AgentChatPage from "./pages/AgentChat";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +38,8 @@ const App = () => (
           <Route path="/" element={<BotLibrary />} />
           <Route path="/create" element={<BotCreator />} />
           <Route path="/flow" element={<FlowBuilder />} />
+          <Route path="/flows" element={<FlowLibrary />} />
+          <Route path="/chat" element={<AgentChatPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
               </main>

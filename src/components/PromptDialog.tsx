@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,11 @@ interface PromptDialogProps {
 
 export const PromptDialog = ({ open, onOpenChange, onSave, initialValue = "" }: PromptDialogProps) => {
   const [prompt, setPrompt] = useState(initialValue);
+
+  // Sync prop to state when dialog opens or initialValue changes
+  useEffect(() => {
+    if (open) setPrompt(initialValue || "");
+  }, [open, initialValue]);
 
   const handleSave = () => {
     onSave(prompt);

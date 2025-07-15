@@ -30,8 +30,8 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
   const [queryFields, setQueryFields] = useState([
     { key: '', description: '', type: '' }
   ]);
-  const [requirements, setRequirements] = useState("");
-  const [envVars, setEnvVars] = useState("{}");
+  const [requirements, setRequirements] = useState<string[]>([""]);
+  const [envVars, setEnvVars] = useState<{ key: string; value: string }[]>([{ key: '', value: '' }]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [polling, setPolling] = useState(false);
@@ -46,69 +46,52 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
       // Prefill queryFields from query_description (object with keys)
       let qFields: { key: string; description: string; type: string }[] = [];
       const queryDesc = (initialTool as any).query_description;
-      if (queryDesc) {
-        let qd = queryDesc;
-        if (typeof qd === 'string') {
-          try {
-            qd = JSON.parse(qd);
-          } catch {
-            // fallback: treat as empty
-            qd = {};
+      if (queryDesc && typeof queryDesc === 'object' && !Array.isArray(queryDesc)) {
+        for (const key in queryDesc) {
+          if (!Object.prototype.hasOwnProperty.call(queryDesc, key)) continue;
+          const val = queryDesc[key];
+          let desc = '';
+          let typ = '';
+          if (val && typeof val === 'object' && !Array.isArray(val)) {
+            desc = typeof val.description === 'string' ? val.description : '';
+            typ = typeof val.type === 'string' ? val.type : '';
           }
-        }
-        if (qd && typeof qd === 'object' && !Array.isArray(qd)) {
-          Object.entries(qd).forEach(([key, val]: [string, any]) => {
-            if (val && typeof val === 'object') {
-              qFields.push({
-                key: key || '',
-                description: typeof val.description === 'string' ? val.description : '',
-                type: typeof val.type === 'string' ? val.type : ''
-              });
-            } else {
-              qFields.push({ key: key || '', description: '', type: '' });
-            }
-          });
+          qFields.push({ key, description: desc, type: typ });
         }
       }
       // Always set at least one empty field for UI
       setQueryFields(qFields.length > 0 ? qFields : [{ key: '', description: '', type: '' }]);
-      // Prefill requirements as comma-separated string
+      // Prefill requirements as array of strings, but never show 'flask' in UI
       const reqs = (initialTool as any).requirements;
+      let filteredReqs: string[] = [];
       if (Array.isArray(reqs)) {
-        setRequirements(reqs.join(', '));
+        filteredReqs = reqs.filter(r => r.trim().toLowerCase() !== 'flask');
       } else if (typeof reqs === 'string') {
         try {
           const arr = JSON.parse(reqs);
           if (Array.isArray(arr)) {
-            setRequirements(arr.join(', '));
-          } else {
-            setRequirements(reqs);
+            filteredReqs = arr.filter(r => typeof r === 'string' && r.trim().toLowerCase() !== 'flask');
+          } else if (reqs.trim().toLowerCase() !== 'flask' && reqs.trim()) {
+            filteredReqs = [reqs];
           }
         } catch {
-          setRequirements(reqs);
-        }
-      } else {
-        setRequirements("");
-      }
-      // Prefill envVars as pretty JSON
-      let envVarsStr = '{}';
-      const envVarsVal = (initialTool as any).env_vars;
-      if (envVarsVal) {
-        let ev = envVarsVal;
-        if (typeof ev === 'string') {
-          try {
-            ev = JSON.parse(ev);
-          } catch {
-            // fallback: keep as string
+          if (reqs.trim().toLowerCase() !== 'flask' && reqs.trim()) {
+            filteredReqs = [reqs];
           }
         }
-        if (typeof ev === 'object') {
-          envVarsStr = JSON.stringify(ev, null, 2);
-        } else if (typeof ev === 'string') {
-          envVarsStr = ev;
+      }
+      setRequirements(filteredReqs.length > 0 ? filteredReqs : [""]);
+      // Prefill envVars as key-value pairs (always JSON object)
+      let envVarsArr: { key: string; value: string }[] = [];
+      const ev = (initialTool as any).env_vars;
+      console.log('Initial env vars:', ev);
+      if (ev && typeof ev === 'object' && !Array.isArray(ev)) {
+        for (const k in ev) {
+          if (!Object.prototype.hasOwnProperty.call(ev, k)) continue;
+          envVarsArr.push({ key: k, value: String(ev[k]) });
         }
       }
-      setEnvVars(envVarsStr);
+      setEnvVars(envVarsArr.length > 0 ? envVarsArr : [{ key: '', value: '' }]);
       setCode((initialTool as any).code);
     } else {
       // Reset form for new tool
@@ -116,8 +99,8 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
       setDescription("");
       setEntryFunction("");
       setQueryFields([{ key: '', description: '', type: '' }]);
-      setRequirements("");
-      setEnvVars("{}");
+      setRequirements([""]);
+      setEnvVars([{ key: '', value: '' }]);
       setCode(`# Function implementation\ndef function_name():\n    # Your code here\n    return {\n        'success': True,\n        'data': 'Function executed successfully'\n    }\n`);
     }
     setError("");
@@ -133,6 +116,32 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
 
   const handleQueryFieldChange = (idx: number, field: string, value: string) => {
     setQueryFields(queryFields.map((q, i) => i === idx ? { ...q, [field]: value } : q));
+  };
+
+  // Requirements handlers
+  const handleAddRequirement = () => {
+    setRequirements([...requirements, ""]);
+  };
+
+  const handleRemoveRequirement = (idx: number) => {
+    setRequirements(requirements.filter((_, i) => i !== idx));
+  };
+
+  const handleRequirementChange = (idx: number, value: string) => {
+    setRequirements(requirements.map((req, i) => i === idx ? value : req));
+  };
+
+  // Env Vars handlers
+  const handleAddEnvVar = () => {
+    setEnvVars([...envVars, { key: '', value: '' }]);
+  };
+
+  const handleRemoveEnvVar = (idx: number) => {
+    setEnvVars(envVars.filter((_, i) => i !== idx));
+  };
+
+  const handleEnvVarChange = (idx: number, field: 'key' | 'value', value: string) => {
+    setEnvVars(envVars.map((ev, i) => i === idx ? { ...ev, [field]: value } : ev));
   };
 
   // Polling is now handled in ToolLibrary, not here
@@ -154,32 +163,89 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
     }
     setLoading(true);
     try {
-      const reqs = requirements.split(",").map(r => r.trim()).filter(Boolean);
-      // Build queryDescription JSON from fields
+      // Always include 'flask' in requirements sent to backend, never show in UI, never send duplicates
+      let reqs = requirements.map(r => r.trim()).filter(Boolean);
+      reqs.push('flask');
+      reqs = Array.from(new Set(reqs)).filter(r => r.length > 0); // remove duplicates and empty
+
+      // Build queryDescription JSON from fields, only non-empty key/type
       const queryDescObj: Record<string, { description: string; type: string }> = {};
       queryFields.forEach(q => {
-        if (q.key.trim()) {
+        if (q.key.trim() && q.type.trim()) {
           queryDescObj[q.key.trim()] = {
             description: q.description.trim(),
             type: q.type.trim()
           };
         }
       });
-      let envVarsObj = {};
-      try {
-        envVarsObj = JSON.parse(envVars);
-      } catch (e) {
-        setError("Env Vars must be valid JSON.");
-        setLoading(false);
+
+      // Build envVars JSON from fields, only non-empty key
+      const envVarsObj: Record<string, string> = {};
+      envVars.forEach(ev => {
+        if (ev.key.trim()) {
+          envVarsObj[ev.key.trim()] = ev.value;
+        }
+      });
+
+      // If editing, use correct update endpoint and PUT with query params, code as body
+      const toolId = initialTool && ((initialTool as any).tool_id || (initialTool as any).id || (initialTool as any)._id);
+      const buildParams = () => {
+        const params = new URLSearchParams();
+        if (entryFunction && entryFunction.trim()) params.append("entry_function", entryFunction);
+        if (functionName && functionName.trim()) params.append("function_name", functionName);
+        if (description && description.trim()) params.append("description", description);
+        if (Object.keys(queryDescObj).length > 0) params.append("query_description", JSON.stringify(queryDescObj));
+        (reqs.length > 0 ? reqs : ['flask']).forEach(r => {
+          if (r && r.trim()) params.append("requirements", r);
+        });
+        if (Object.keys(envVarsObj).length > 0) params.append("env_vars", JSON.stringify(envVarsObj));
+        return params;
+      };
+
+      if (toolId) {
+        // UPDATE: PUT with query params, code as body
+        const params = buildParams();
+        const url = `${API_BASE_URL}/multiagent-core/tools/clients/kapture/update-tools/${toolId}?${params.toString()}`;
+        const response = await fetch(url, {
+          method: "PUT",
+          headers: {
+            accept: "application/json",
+            "Content-Type": "text/plain"
+          },
+          body: code
+        });
+        if (!response.ok) {
+          setError("Failed to update tool. Please check your input and try again.");
+          setLoading(false);
+          return;
+        }
+        const toolResp = await response.json();
+        if ((toolResp.status === "task-submitted" && toolResp.task_id) || (toolResp.status === "success" && toolResp.task_id)) {
+          onSave({
+            name: functionName,
+            description,
+            code,
+            task_id: toolResp.task_id,
+            original_name: functionName,
+            status: 'deploying',
+          });
+          setFunctionName("");
+          setDescription("");
+          setEntryFunction("");
+          setQueryFields([{ key: '', description: '', type: '' }]);
+          setRequirements([""]);
+          setEnvVars([{ key: '', value: '' }]);
+          setCode("");
+          setLoading(false);
+          onOpenChange(false);
+        } else {
+          setError("Unexpected response from server.");
+          setLoading(false);
+        }
         return;
       }
-      const params = new URLSearchParams();
-      params.append("entry_function", entryFunction);
-      params.append("function_name", functionName);
-      params.append("description", description);
-      params.append("query_description", JSON.stringify(queryDescObj));
-      reqs.forEach(r => params.append("requirements", r));
-      params.append("env_vars", JSON.stringify(envVarsObj));
+      // CREATE: POST with query params, code as body, Content-Type: text/plain
+      const params = buildParams();
       const url = `${API_BASE_URL}/multiagent-core/tools/clients/kapture/deploy-tools?${params.toString()}`;
       const response = await fetch(url, {
         method: "POST",
@@ -195,7 +261,7 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
         return;
       }
       const toolResp = await response.json();
-      if (toolResp.status === "task-submitted" && toolResp.task_id) {
+      if ((toolResp.status === "task-submitted" && toolResp.task_id) || (toolResp.status === "success" && toolResp.task_id)) {
         // Pass tool info and task_id to parent for background polling
         onSave({
           name: functionName,
@@ -205,13 +271,13 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
           original_name: functionName,
           status: 'deploying',
         });
-        // Reset form
+        // Only reset form after successful API call and onSave
         setFunctionName("");
         setDescription("");
         setEntryFunction("");
         setQueryFields([{ key: '', description: '', type: '' }]);
-        setRequirements("");
-        setEnvVars("{}");
+        setRequirements([""]);
+        setEnvVars([{ key: '', value: '' }]);
         setCode("");
         setLoading(false);
         onOpenChange(false);
@@ -220,14 +286,17 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
         setLoading(false);
       }
     } catch (e) {
-      setError("Failed to create tool. Please try again.");
+      setError("Failed to " + (initialTool ? "update" : "create") + " tool. Please try again.");
       setLoading(false);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[80vh] overflow-auto">
+      <DialogContent className="max-w-4xl h-[80vh] overflow-auto" aria-describedby="function-dialog-desc">
+        <span id="function-dialog-desc" style={{ display: 'none' }}>
+          {initialTool ? 'Edit an existing tool. Fill out the fields and update the tool.' : 'Create a new tool. Fill out the fields and save.'}
+        </span>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {initialTool ? 'Edit Tool' : 'Create Tool'}
@@ -294,24 +363,44 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
               <Button type="button" variant="outline" size="sm" onClick={handleAddQueryField} className="mt-1">+ Add Field</Button>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="requirements">Requirements (comma separated)</Label>
-              <Input
-                id="requirements"
-                placeholder=""
-                value={requirements}
-                onChange={e => setRequirements(e.target.value)}
-              />
+              <Label>Requirements</Label>
+              {requirements.map((req, idx) => (
+                <div key={idx} className="flex gap-2 mb-2">
+                  <Input
+                    placeholder="Requirement name"
+                    value={req}
+                    onChange={e => handleRequirementChange(idx, e.target.value)}
+                    className="w-4/5"
+                  />
+                  {requirements.length > 1 && (
+                    <Button type="button" variant="ghost" onClick={() => handleRemoveRequirement(idx)} className="text-destructive px-2">✕</Button>
+                  )}
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={handleAddRequirement} className="mt-1">+ Add Requirement</Button>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="env-vars">Env Vars (JSON)</Label>
-              <Textarea
-                id="env-vars"
-                placeholder='{"KEY": "VALUE"}'
-                value={envVars}
-                onChange={e => setEnvVars(e.target.value)}
-                rows={2}
-                className="font-mono"
-              />
+              <Label>Env Vars</Label>
+              {envVars.map((ev, idx) => (
+                <div key={idx} className="flex gap-2 mb-2">
+                  <Input
+                    placeholder="Key"
+                    value={ev.key}
+                    onChange={e => handleEnvVarChange(idx, 'key', e.target.value)}
+                    className="w-2/5"
+                  />
+                  <Input
+                    placeholder="Value"
+                    value={ev.value}
+                    onChange={e => handleEnvVarChange(idx, 'value', e.target.value)}
+                    className="w-2/5"
+                  />
+                  {envVars.length > 1 && (
+                    <Button type="button" variant="ghost" onClick={() => handleRemoveEnvVar(idx)} className="text-destructive px-2">✕</Button>
+                  )}
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={handleAddEnvVar} className="mt-1">+ Add Env Var</Button>
             </div>
             {error && <div className="text-destructive text-sm pt-2">{error}</div>}
           </div>
