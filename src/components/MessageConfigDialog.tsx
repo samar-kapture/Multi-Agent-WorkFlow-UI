@@ -46,7 +46,7 @@ export const MessageConfigDialog = ({ open, onOpenChange, onSave, initialConfig 
   };
 
   const updateReEngageMessage = (index: number, field: 'time' | 'message', value: string | number) => {
-    const updated = reEngageMessages.map((item, i) => 
+    const updated = reEngageMessages.map((item, i) =>
       i === index ? { ...item, [field]: value } : item
     );
     setReEngageMessages(updated);
@@ -69,7 +69,7 @@ export const MessageConfigDialog = ({ open, onOpenChange, onSave, initialConfig 
             Configure Voice Bot messages
           </DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-6">
           {/* Welcome Message */}
           <div className="space-y-3">
@@ -86,7 +86,7 @@ export const MessageConfigDialog = ({ open, onOpenChange, onSave, initialConfig 
             />
           </div>
 
-          {/* Re-Engage Messages */}
+          {/* Re-Engage Messages
           <div className="space-y-3">
             <div>
               <h3 className="font-medium">Re - Engage</h3>
@@ -94,7 +94,7 @@ export const MessageConfigDialog = ({ open, onOpenChange, onSave, initialConfig 
                 Configure bot behaviour when the customer is not responding or goes silent
               </p>
             </div>
-            
+
             <div className="space-y-4">
               {reEngageMessages.map((item, index) => (
                 <div key={index} className="grid grid-cols-12 gap-4 items-end">
@@ -134,12 +134,12 @@ export const MessageConfigDialog = ({ open, onOpenChange, onSave, initialConfig 
                 </div>
               ))}
             </div>
-            
+
             <Button variant="outline" onClick={addReEngageMessage} className="gap-2">
               <Plus className="w-4 h-4" />
               Add
             </Button>
-          </div>
+          </div> */}
 
           {/* Closing Message */}
           <div className="space-y-3">

@@ -1,7 +1,3 @@
-
-
-
-
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -108,7 +104,11 @@ const FlowLibrary = () => {
             <div key={flow.id} className="relative group w-full">
               <button
                 className="text-left w-full"
-                onClick={() => navigate(`/flows`)}
+                onClick={e => {
+                  // Only navigate if not clicking the delete button
+                  if ((e.target as HTMLElement).closest('.delete-flow-btn')) return;
+                  navigate(`/flow?flow_id=${flow.id}`);
+                }}
                 style={{ background: "none", border: "none", padding: 0 }}
               >
                 <Card className="relative group transition-all duration-200 border-2 hover:border-primary/60 shadow-md cursor-pointer bg-card/90">
@@ -140,7 +140,7 @@ const FlowLibrary = () => {
                       }}>
                         <DialogTrigger asChild>
                           <button
-                            className="ml-2 text-destructive hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="ml-2 text-destructive hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity delete-flow-btn"
                             title="Delete Flow"
                             onClick={e => {
                               e.stopPropagation();
@@ -148,6 +148,7 @@ const FlowLibrary = () => {
                               setFlowToDelete(flow);
                               setDeleteDialogOpen(true);
                             }}
+                            type="button"
                           >
                             &#128465;
                           </button>

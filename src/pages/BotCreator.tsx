@@ -353,7 +353,17 @@ const BotCreator = () => {
 
       // Bind tools to bot
       if (botIdToBind) {
-        const params = selectedTools.map(id => `tool_ids=${encodeURIComponent(id)}`).join('&');
+        // Always stringify tool IDs to avoid UUID type mismatch, and filter out null/undefined
+        const params = selectedTools
+          .filter(id => id !== null && id !== undefined)
+          .map(id => {
+            // id is guaranteed not null/undefined here due to filter
+            const safeId = id as any;
+            let toolId = typeof safeId === 'object' ? (safeId.tool_id || safeId.id) : safeId;
+            if (typeof toolId !== 'string') toolId = String(toolId);
+            return `tool_ids=${encodeURIComponent(toolId.trim().toLowerCase())}`;
+          })
+          .join('&');
         const bindUrl = `${API_BASE_URL}/multiagent-core/tools/clients/${CLIENT_ID}/bots/${botIdToBind}/tools/bind?${params}`;
         const bindRes = await fetch(bindUrl, {
           method: 'POST',

@@ -83,13 +83,13 @@ export const ToolLibrary = ({ open, onOpenChange, selectedTools, onToolSelection
           setDeployingTools(prev => ({ ...prev, [tool.task_id]: { ...tool, status: 'error', error: data.error || 'Deployment failed' } }));
         } else {
           // Still deploying, keep polling
-          setTimeout(poll, 10000); // 10 seconds
+          setTimeout(poll, 5000); // 5 seconds
         }
       } catch (e) {
         setDeployingTools(prev => ({ ...prev, [tool.task_id]: { ...tool, status: 'error', error: 'Failed to check deployment status' } }));
       }
     };
-    setTimeout(poll, 10000); // 10 seconds
+    setTimeout(poll, 5000); // 5 seconds
   };
 
   // toolData may include task_id, original_name, status
