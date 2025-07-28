@@ -14,7 +14,7 @@ import { apiService, Bot as BotType, Tool } from "@/services/api";
 const BotLibrary = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [bots, setBots] = useState<BotType[]>([]);
-  const [tools, setTools] = useState<Tool[]>([]);
+  const [toolCount, setToolCount] = useState<number>(0);
   const { toast } = useToast();
   const navigate = useNavigate();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -30,7 +30,6 @@ const BotLibrary = () => {
 
   const loadData = async () => {
     try {
-      console.log("Loading bots and tools...");
       // Fetch bots from API
       const res = await fetch(`${API_BASE_URL}/multiagent-core/bot/clients/${CLIENT_ID}/bots?skip=0&limit=100`, {
         headers: {
@@ -39,10 +38,7 @@ const BotLibrary = () => {
         }
       });
       const botsData = await res.json();
-      console.log("Bots fetched:", botsData);
-      // The API returns { total, skip, limit, bots: [...] }
       const botsArr = Array.isArray(botsData?.bots) ? botsData.bots : [];
-      // Map API bots to local BotType structure for display
       setBots(botsArr.map(apiBot => {
         const botObj: any = {
           id: apiBot.bot_id,
@@ -51,7 +47,6 @@ const BotLibrary = () => {
           agentPrompt: apiBot.final_prompt,
           createdAt: apiBot.created_at,
           updatedAt: apiBot.updated_at,
-          // Prefer tools (array of objects), fallback to functions (array of ids), fallback to []
           functions: Array.isArray(apiBot.tools)
             ? apiBot.tools.map((t: any) => t.tool_id || t.id)
             : Array.isArray(apiBot.functions)
@@ -64,9 +59,19 @@ const BotLibrary = () => {
     } catch (e) {
       setBots([]);
     }
-    // Still load tools from local apiService
-    const allTools = apiService.getTools();
-    setTools(allTools);
+    // Fetch tool count from API
+    try {
+      const res = await fetch(`${API_BASE_URL}/multiagent-core/tools/clients/${CLIENT_ID}/tools/`, {
+        headers: {
+          'accept': 'application/json',
+          'ngrok-skip-browser-warning': '69420'
+        }
+      });
+      const toolsData = await res.json();
+      setToolCount(Array.isArray(toolsData) ? toolsData.length : 0);
+    } catch (e) {
+      setToolCount(0);
+    }
   };
 
   const filteredBots = bots.filter(bot =>
@@ -158,8 +163,8 @@ const BotLibrary = () => {
     }
   };
 
+  // Remove tools[] and apiService.getTools() usage, but keep getBotTools for badge display
   const getBotTools = (bot: any) => {
-    // If bot._tools is present and is array of objects, use it directly
     if (Array.isArray(bot._tools) && bot._tools.length > 0 && typeof bot._tools[0] === 'object') {
       return bot._tools.map((t: any) => ({
         id: t.tool_id || t.id,
@@ -168,9 +173,8 @@ const BotLibrary = () => {
         ...t
       }));
     }
-    // Otherwise, fallback to matching ids in tools[]
-    if (!bot.functions || !Array.isArray(bot.functions)) return [];
-    return tools.filter(tool => bot.functions.includes(tool.id));
+    // Fallback: no tools info
+    return [];
   };
 
   const formatDate = (dateString: string) => {
@@ -182,7 +186,7 @@ const BotLibrary = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-6 space-y-6 bg-background min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -223,6 +227,18 @@ const BotLibrary = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
+                <p className="text-sm font-medium text-muted-foreground">Client</p>
+                <p className="text-2xl font-bold">{CLIENT_ID}</p>
+              </div>
+              <Bot className="w-8 h-8 text-primary" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-card">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Bots</p>
                 <p className="text-2xl font-bold">{bots.length}</p>
               </div>
@@ -232,15 +248,15 @@ const BotLibrary = () => {
         </Card>
 
         <Card className="shadow-card">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Active Bots</p>
-                <p className="text-2xl font-bold">{bots.length}</p>
-              </div>
-              <Play className="w-8 h-8 text-success" />
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Total Tools</p>
+              <p className="text-2xl font-bold">{toolCount}</p>
             </div>
-          </CardContent>
+            <Edit className="w-8 h-8 text-info" />
+          </div>
+        </CardContent>
         </Card>
 
         {/*

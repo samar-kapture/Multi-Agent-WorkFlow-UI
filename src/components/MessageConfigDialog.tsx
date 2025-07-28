@@ -22,12 +22,12 @@ interface MessageConfigDialogProps {
 }
 
 export const MessageConfigDialog = ({ open, onOpenChange, onSave, initialConfig }: MessageConfigDialogProps) => {
-  const [welcomeMessage, setWelcomeMessage] = useState("Thank you for calling Kapture. I am your virtual assistant. I'm here to help.");
+  const [welcomeMessage, setWelcomeMessage] = useState("Thank you for calling!. I am your virtual assistant. I'm here to help.");
   const [reEngageMessages, setReEngageMessages] = useState([
     { time: 30, message: "Are you still there?" },
     { time: 30, message: "" }
   ]);
-  const [closingMessage, setClosingMessage] = useState("Thank you for choosing Kapture. We look forward to serving you! Have a great day!");
+  const [closingMessage, setClosingMessage] = useState("Thank you for choosing us. We look forward to serving you! Have a great day!");
 
   useEffect(() => {
     if (initialConfig) {

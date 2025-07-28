@@ -295,7 +295,7 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[80vh] overflow-auto" aria-describedby="function-dialog-desc">
+      <DialogContent className="max-w-4xl h-[80vh]" aria-describedby="function-dialog-desc">
         <span id="function-dialog-desc" style={{ display: 'none' }}>
           {initialTool ? 'Edit an existing tool. Fill out the fields and update the tool.' : 'Create a new tool. Fill out the fields and save.'}
         </span>
@@ -305,8 +305,8 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
           </DialogTitle>
         </DialogHeader>
         <div className="grid grid-cols-2 gap-6 h-full">
-          {/* Left side - Form */}
-          <div className="space-y-4 flex flex-col h-full max-h-[70vh] overflow-auto pr-2">
+          {/* Left side - Form (scrollable) */}
+          <div className="space-y-4 flex flex-col h-full max-h-[70vh] overflow-auto scrollbar-thin pr-2">
             <div className="space-y-2">
               <Label htmlFor="function-name">Function Name</Label>
               <Input
@@ -320,7 +320,7 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
               <Label htmlFor="entry-function">Entry Function Name</Label>
               <Input
                 id="entry-function"
-                placeholder="e.g. check_delivery_availability"
+                placeholder="e.g. main_function"
                 value={entryFunction}
                 onChange={e => setEntryFunction(e.target.value)}
               />

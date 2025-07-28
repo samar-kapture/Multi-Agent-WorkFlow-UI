@@ -12,10 +12,13 @@ import {
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Settings, Plus } from "lucide-react";
-import { API_BASE_URL, CLIENT_ID } from "@/config";
+import { Settings, Plus, Trash2 } from "lucide-react";
+import { Copy } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { API_BASE_URL, CLIENT_ID, WS_URL } from "@/config";
 
 const FlowLibrary = () => {
+  const { toast } = useToast();
   const [flows, setFlows] = useState([]);
   const [bots, setBots] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -61,7 +64,7 @@ const FlowLibrary = () => {
     : null;
 
   return (
-    <div className="container mx-auto p-8 space-y-8">
+    <div className="container mx-auto p-8 space-y-8 bg-background">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
           <h1 className="text-3xl font-bold flex items-center gap-2">
@@ -102,37 +105,70 @@ const FlowLibrary = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {filteredFlows.map(flow => (
             <div key={flow.id} className="relative group w-full">
-              <button
-                className="text-left w-full"
-                onClick={e => {
-                  // Only navigate if not clicking the delete button
-                  if ((e.target as HTMLElement).closest('.delete-flow-btn')) return;
-                  navigate(`/flow?flow_id=${flow.id}`);
-                }}
-                style={{ background: "none", border: "none", padding: 0 }}
-              >
-                <Card className="relative group transition-all duration-200 border-2 hover:border-primary/60 shadow-md cursor-pointer bg-card/90">
-                  <CardHeader className="pb-2 pt-4 px-4">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <CardTitle className="text-base font-semibold truncate mb-1 flex items-center gap-2">
-                          {flow.config_id}
-                          <span className="ml-1 px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[10px] font-medium">
-                            {flow.id}
+              <Card className="relative group transition-all duration-200 border-2 hover:border-primary/60 shadow-md bg-card/90">
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <div 
+                      className="min-w-0 flex-1 cursor-pointer"
+                      onClick={() => navigate(`/flow?flow_id=${flow.id}`)}
+                    >
+                      <CardTitle className="text-base font-semibold truncate mb-1 flex items-center gap-2">
+                        {flow.config_id}
+                        <span className="ml-1 px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[10px] font-medium">
+                          {flow.id}
+                        </span>
+                      </CardTitle>
+                      {/* Show connected bots for this flow */}
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {bots.filter(bot => flow.structure && Object.values(flow.structure).flat().includes(bot.id)).map(bot => (
+                          <span key={bot.id} className="inline-block bg-primary/10 text-primary px-2 py-0.5 rounded text-xs">
+                            {bot.name}
                           </span>
-                        </CardTitle>
-                        {/* <CardDescription className="text-xs text-muted-foreground line-clamp-2 mb-1">
-                          {flow.description || 'No description'}
-                        </CardDescription> */}
-                        {/* Show connected bots for this flow */}
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {bots.filter(bot => flow.structure && Object.values(flow.structure).flat().includes(bot.id)).map(bot => (
-                            <span key={bot.id} className="inline-block bg-primary/10 text-primary px-2 py-0.5 rounded text-xs">
-                              {bot.name}
-                            </span>
-                          ))}
-                        </div>
+                        ))}
                       </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {/* Test Bot button */}
+                      <button
+                        className="text-success hover:text-success-dark opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                        title="Test Bot"
+                        onClick={e => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          window.location.href = `/chat?config_id=${encodeURIComponent(flow.config_id)}&test=true`;
+                        }}
+                        type="button"
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-play"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+                      </button>
+
+                      {/* Copy WebSocket URL and payload button */}
+                      <button
+                        className="text-primary hover:text-primary-dark opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                        title="Copy WebSocket URL & Payload"
+                        onClick={e => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          // Correct WebSocket URL and payload structure
+                          const wsUrl = `${WS_URL}`;
+                          const payload = {
+                            input: "<User Input>",
+                            client_id: CLIENT_ID,
+                            config_version: flow.config_id,
+                            conversation_id: "<Conversation ID>",
+                            event_type: "<INIT or empty string>"
+                          };
+                          navigator.clipboard.writeText(JSON.stringify({ ws_url: wsUrl, payload }, null, 2));
+                          toast({
+                            title: 'WebSocket URL & Payload copied!',
+                            description: 'Copied as JSON to clipboard.',
+                          });
+                        }}
+                        type="button"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                      
                       {/* Delete button with Dialog */}
                       <Dialog open={deleteDialogOpen && flowToDelete?.id === flow.id} onOpenChange={open => {
                         setDeleteDialogOpen(open);
@@ -140,7 +176,7 @@ const FlowLibrary = () => {
                       }}>
                         <DialogTrigger asChild>
                           <button
-                            className="ml-2 text-destructive hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity delete-flow-btn"
+                            className="text-destructive hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity p-1"
                             title="Delete Flow"
                             onClick={e => {
                               e.stopPropagation();
@@ -150,7 +186,7 @@ const FlowLibrary = () => {
                             }}
                             type="button"
                           >
-                            &#128465;
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </DialogTrigger>
                         <DialogContent>
@@ -162,7 +198,10 @@ const FlowLibrary = () => {
                           </DialogHeader>
                           <DialogFooter>
                             <DialogClose asChild>
-                              <Button variant="secondary" onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>
+                              <Button variant="secondary" onClick={() => {
+                                setDeleteDialogOpen(false);
+                                setFlowToDelete(null);
+                              }} disabled={deleting}>
                                 Cancel
                               </Button>
                             </DialogClose>
@@ -180,11 +219,23 @@ const FlowLibrary = () => {
                                   setFlows(prev => prev.filter(f => f.id !== flow.id));
                                   setDeleteDialogOpen(false);
                                   setFlowToDelete(null);
+                                  toast({
+                                    title: 'Flow Deleted',
+                                    description: `Flow "${flow.config_id}" has been deleted successfully.`,
+                                  });
                                 } else {
-                                  alert('Failed to delete flow.');
+                                  toast({
+                                    title: 'Error',
+                                    description: 'Failed to delete flow. Please try again.',
+                                    variant: 'destructive'
+                                  });
                                 }
                               } catch {
-                                alert('Failed to delete flow.');
+                                toast({
+                                  title: 'Error',
+                                  description: 'Failed to delete flow. Please try again.',
+                                  variant: 'destructive'
+                                });
                               }
                               setDeleting(false);
                             }} disabled={deleting}>
@@ -194,21 +245,24 @@ const FlowLibrary = () => {
                         </DialogContent>
                       </Dialog>
                     </div>
-                  </CardHeader>
-                  <CardContent className="pt-0 pb-4 px-4">
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-1">
+                  </div>
+                </CardHeader>
+                <CardContent 
+                  className="pt-0 pb-4 px-4 cursor-pointer"
+                  onClick={() => navigate(`/flow?flow_id=${flow.id}`)}
+                >
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-1">
+                    <span className="bg-muted px-2 py-0.5 rounded">
+                      Created: {flow.created_at ? new Date(flow.created_at).toLocaleDateString() : ''}
+                    </span>
+                    {flow.updated_at && (
                       <span className="bg-muted px-2 py-0.5 rounded">
-                        Created: {flow.created_at ? new Date(flow.created_at).toLocaleDateString() : ''}
+                        Updated: {new Date(flow.updated_at).toLocaleDateString()}
                       </span>
-                      {flow.updated_at && (
-                        <span className="bg-muted px-2 py-0.5 rounded">
-                          Updated: {new Date(flow.updated_at).toLocaleDateString()}
-                        </span>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           ))}
         </div>

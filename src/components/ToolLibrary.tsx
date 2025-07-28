@@ -351,7 +351,7 @@ export const ToolLibrary = ({ open, onOpenChange, selectedTools, onToolSelection
             </div>
 
             {/* Tools Grid */}
-            <div className="flex-1 overflow-auto">
+            <div className="flex-1 overflow-auto scrollbar-thin">
               {filteredTools.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground border-2 border-dashed border-border rounded-xl">
                   <Settings className="w-8 h-8 mx-auto mb-3 opacity-50" />

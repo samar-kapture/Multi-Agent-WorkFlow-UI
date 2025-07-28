@@ -22,9 +22,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <SidebarProvider>
-          <div className="min-h-screen flex w-full">
+          <div className="min-h-screen flex w-full bg-background">
             <AppSidebar />
-            <div className="flex-1 flex flex-col ml-[35px]">
+            <div className="flex-1 flex flex-col ml-[35px] bg-background">
               <header className="h-12 flex items-center border-b border-border bg-card/50 backdrop-blur">
                 <SidebarTrigger className="ml-4" />
                 <div className="ml-4">
@@ -33,7 +33,7 @@ const App = () => (
                   </h2>
                 </div>
               </header>
-              <main className="flex-1 overflow-auto">
+              <main className="flex-1 overflow-auto bg-background scrollbar-thin">
         <Routes>
           <Route path="/" element={<BotLibrary />} />
           <Route path="/create" element={<BotCreator />} />

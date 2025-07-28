@@ -32,12 +32,7 @@ const navigationItems = [
   //   icon: Bot,
   //   description: "Build new intelligent agents"
   // },
-  {
-    title: "Agent Chat",
-    url: "/chat",
-    icon: SendHorizonal,
-    description: "Chat with your agent via websocket"
-  },
+  // Agent Chat removed
 ];
 
 export function AppSidebar() {
@@ -48,11 +43,13 @@ export function AppSidebar() {
 
   const isActive = (path: string) => currentPath === path;
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
-    isActive ? "bg-primary text-white" : "hover:bg-muted";
+    isActive
+      ? "bg-sidebar-primary text-sidebar-primary-foreground font-bold shadow-glow"
+      : "hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground";
 
   return (
-    <Sidebar>
-      <SidebarContent>
+    <Sidebar className="bg-sidebar">
+      <SidebarContent className="bg-sidebar border-r border-sidebar-border">
         <SidebarGroup className="px-4 pt-6 pb-2">
           <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground px-2 py-2 mb-4 tracking-wide uppercase">
             {!isCollapsed ? "Navigation" : ""}
@@ -66,15 +63,15 @@ export function AppSidebar() {
                       to={item.url} 
                       end 
                       className={({ isActive }) => 
-                        `flex items-center px-0 py-5 min-h-[56px] rounded-lg transition-all duration-200 text-base ${getNavCls({ isActive })}`
+                        `flex items-center px-0 py-5 min-h-[56px] rounded-lg transition-all duration-200 text-base ${getNavCls({ isActive })} hover:shadow-md`
                       }
                     >
                       <div className={`flex items-center w-full ${isCollapsed ? 'justify-center' : 'justify-start gap-4'}`} style={isCollapsed ? { justifyContent: 'center' } : {}}>
                         <item.icon className="w-6 h-6 shrink-0" />
                         {!isCollapsed && (
                           <div className="flex-1 text-left min-w-0">
-                            <div className="text-base font-semibold truncate">{item.title}</div>
-                            <div className="text-xs text-muted-foreground opacity-80 truncate mt-0.5">{item.description}</div>
+                        <div className="text-base font-semibold truncate text-[#E2E8F0]">{item.title}</div>
+                        <div className="text-xs opacity-80 truncate mt-0.5 text-[#A0AEC0]">{item.description}</div>
                           </div>
                         )}
                       </div>

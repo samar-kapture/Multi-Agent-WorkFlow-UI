@@ -164,6 +164,7 @@ const FlowBuilder = () => {
   const [selectedBot, setSelectedBot] = useState<string | null>(null);
   const [availableBots, setAvailableBots] = useState<BotType[]>([]);
   const [flowName, setFlowName] = useState("Untitled Flow");
+  const [editingFlowId, setEditingFlowId] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -213,8 +214,6 @@ const FlowBuilder = () => {
           if (bot.id) botIdToName[bot.id] = bot.name;
           if (bot.bot_id) botIdToName[bot.bot_id] = bot.name;
         });
-        console.log('allBots:', allBots);
-        console.log('botIdToName mapping:', botIdToName);
         // Build nodes
         const newNodes: Node[] = [
           {
@@ -238,7 +237,6 @@ const FlowBuilder = () => {
           ...nodeIds.filter(id => id !== '__end__').map((id, idx) => {
             // Only show bot name if id matches a bot id, else show id
             const label = botIdToName[id] || id;
-            console.log('Node', id, 'label:', label);
             return {
               id,
               type: 'default',
@@ -263,6 +261,7 @@ const FlowBuilder = () => {
         setNodes(newNodes);
         setEdges(newEdges);
         setFlowName(flow.config_id || 'Untitled Flow');
+        setEditingFlowId(flow.id || null);
         setIsPrefilled(true);
       });
   }, [location.search, isPrefilled, setNodes, setEdges, allBots]);
@@ -356,21 +355,37 @@ const FlowBuilder = () => {
       const bot_structure = buildBotStructure(nodes, edges);
       // Convert spaces to underscores for config_id
       const configId = flowName.replace(/\s+/g, '_');
-      await fetch(`${API_BASE_URL}/multiagent-core/graph_structure/bot-structure`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "accept": "application/json", 'ngrok-skip-browser-warning': '69420' },
-        body: JSON.stringify({
-          client_id: "kapture",
-          config_id: configId,
-          structure: bot_structure,
-          welcome_message: messageConfig.welcome_message,
-        }),
-      });
-
-      toast({
-        title: "Flow Saved",
-        description: `Flow "${flowName}" has been saved successfully!`,
-      });
+      if (editingFlowId) {
+        // Update existing flow
+        await fetch(`${API_BASE_URL}/multiagent-core/graph_structure/bot-structure/${editingFlowId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", "accept": "application/json", 'ngrok-skip-browser-warning': '69420' },
+          body: JSON.stringify({
+            structure: bot_structure,
+            welcome_message: messageConfig.welcome_message,
+          }),
+        });
+        toast({
+          title: "Flow Updated",
+          description: `Flow \"${flowName}\" has been updated successfully!`,
+        });
+      } else {
+        // Create new flow
+        await fetch(`${API_BASE_URL}/multiagent-core/graph_structure/bot-structure`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "accept": "application/json", 'ngrok-skip-browser-warning': '69420' },
+          body: JSON.stringify({
+            client_id: CLIENT_ID,
+            config_id: configId,
+            structure: bot_structure,
+            welcome_message: messageConfig.welcome_message,
+          }),
+        });
+        toast({
+          title: "Flow Saved",
+          description: `Flow \"${flowName}\" has been saved successfully!`,
+        });
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -416,10 +431,10 @@ const FlowBuilder = () => {
   };
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-background overflow-hidden">
       {/* Sidebar */}
-      <div className="w-80 bg-card border-r border-border p-4 space-y-4 overflow-y-auto">
-        <div className="flex items-center gap-3 mb-6">
+      <div className="w-80 bg-card border-r border-border p-4 space-y-4 flex flex-col">
+        <div className="flex items-center gap-3 mb-6 flex-shrink-0">
           <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
             <Folder className="w-5 h-5 text-white" />
           </div>
@@ -428,6 +443,9 @@ const FlowBuilder = () => {
             <p className="text-sm text-muted-foreground">Design agent workflows</p>
           </div>
         </div>
+
+        {/* Scrollable content area */}
+        <div className="flex-1 overflow-y-auto scrollbar-thin space-y-4">
 
         {/* Flow Name */}
         <div className="space-y-2">
@@ -445,16 +463,24 @@ const FlowBuilder = () => {
         <div className="flex gap-2">
           <Button onClick={saveFlow} size="sm" className="flex-1 gap-1">
             <Save className="w-3 h-3" />
-            Save
+            {editingFlowId ? 'Update' : 'Save'}
           </Button>
-          {/* <Button onClick={runFlow} size="sm" variant="outline" className="flex-1 gap-1">
+          <Button
+            onClick={() => {
+              const configId = flowName.replace(/\s+/g, '_');
+              window.location.href = `/chat?config_id=${encodeURIComponent(configId)}&test=true`;
+            }}
+            size="sm"
+            variant="outline"
+            className="flex-1 gap-1 border-2 border-border hover:bg-accent hover:text-accent-foreground"
+          >
             <Play className="w-3 h-3" />
-            Run
+            Test Bot
           </Button>
-          <Button onClick={exportFlow} size="sm" variant="outline" className="gap-1">
-            <Download className="w-3 h-3" />
-          </Button> */}
-          <Button onClick={() => setShowMessageDialog(true)} variant="outline" className="gap-2">
+        </div>
+
+        <div className="flex gap-2 mt-2">
+          <Button onClick={() => setShowMessageDialog(true)} variant="outline" className="gap-2 w-full border-2 border-border hover:bg-accent hover:text-accent-foreground">
             <Settings className="w-4 h-4" />
             Configure Messages
           </Button>
@@ -501,31 +527,6 @@ const FlowBuilder = () => {
           </CardContent>
         </Card>
 
-        {/* Flow Stats */}
-        <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle className="text-lg">Flow Statistics</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Nodes:</span>
-              <span className="font-medium">{nodes.length}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Connections:</span>
-              <span className="font-medium">{edges.length}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Status:</span>
-              {edges.length < 1 ? (
-                <span className="font-medium text-destructive">Not Ready</span>
-              ) : (
-                <span className="font-medium text-success">Ready</span>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Dynamic Remove Button (Node or Edge) */}
         {(selectedNode || selectedEdge) && (
           <Card className="shadow-card">
@@ -554,6 +555,31 @@ const FlowBuilder = () => {
           </Card>
         )}
 
+        {/* Flow Stats */}
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle className="text-lg">Flow Statistics</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Nodes:</span>
+              <span className="font-medium">{nodes.length}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Connections:</span>
+              <span className="font-medium">{edges.length}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Status:</span>
+              {edges.length < 1 ? (
+                <span className="font-medium text-destructive">Not Ready</span>
+              ) : (
+                <span className="font-medium text-success">Ready</span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Instructions */}
         <Card className="shadow-card">
           <CardHeader>
@@ -568,6 +594,7 @@ const FlowBuilder = () => {
             <p>• Save your work before closing</p>
           </CardContent>
         </Card>
+        </div>
       </div>
 
       {/* MessageConfigDialog */}
@@ -583,7 +610,7 @@ const FlowBuilder = () => {
       />
 
       {/* Flow Canvas */}
-      <div className="flex-1 relative bg-background">
+      <div className="flex-1 relative bg-background overflow-hidden">
         <ReactFlow
           nodes={nodes}
           edges={getStyledEdges()}
@@ -602,13 +629,27 @@ const FlowBuilder = () => {
           fitView
           attributionPosition="top-right"
         >
-          <Controls />
+          <Controls
+            style={{
+              background: 'hsl(var(--card))',
+              border: '1px solid hsl(var(--border))',
+              borderRadius: 8,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+              color: 'hsl(var(--foreground))',
+              padding: 4,
+            }}
+            showInteractive={true}
+          />
           <MiniMap
             style={{
               height: 120,
               backgroundColor: 'hsl(var(--card))',
-              border: '1px solid hsl(var(--border))'
+              border: '1px solid hsl(var(--border))',
+              borderRadius: 8,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
             }}
+            nodeColor={n => typeof n.style?.background === 'string' ? n.style.background : 'hsl(var(--primary))'}
+            maskColor="rgba(40,40,40,0.7)"
             zoomable
             pannable
           />

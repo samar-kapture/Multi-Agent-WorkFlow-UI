@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Bot, Save, Play, Settings, Plus, X, MessageCircle, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -481,7 +482,7 @@ const BotCreator = () => {
   return (
 
     <>
-      <div className="container mx-auto p-8 space-y-8">
+      <div className="container mx-auto p-8 space-y-8 bg-background min-h-screen">
         {/* Header (no toggle here) */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -568,21 +569,18 @@ const BotCreator = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="tone">Tone</Label>
-                    <div className="relative">
-                      <select
-                        id="tone"
-                        value={tone}
-                        onChange={e => setTone(e.target.value)}
-                        className="h-11 w-full border border-border rounded-md px-3 bg-white text-base focus:outline-none focus:ring-2 focus:ring-primary transition shadow-sm appearance-none pr-10"
-                      >
+                    <Select value={tone} onValueChange={setTone}>
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder="Select tone" />
+                      </SelectTrigger>
+                      <SelectContent>
                         {toneOptions.map(option => (
-                          <option key={option} value={option}>{option.charAt(0).toUpperCase() + option.slice(1)}</option>
+                          <SelectItem key={option} value={option}>
+                            {option.charAt(0).toUpperCase() + option.slice(1)}
+                          </SelectItem>
                         ))}
-                      </select>
-                      <span className="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
-                        ▼
-                      </span>
-                    </div>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="max-token">Max Token: <span className="font-semibold text-primary">{maxToken}</span></Label>
@@ -622,7 +620,7 @@ const BotCreator = () => {
             {!isIntelligentBot && (
               <div className="space-y-2">
                 <Label htmlFor="python-code">Python Code</Label>
-                <div className="h-[350px] border border-code-border rounded-lg overflow-hidden">
+                <div className="h-[350px] border border-code-border rounded-lg overflow-hidden scrollbar-visible">
                   <Editor
                     height="100%"
                     defaultLanguage="python"

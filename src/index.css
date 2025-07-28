@@ -8,117 +8,112 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Modern tech-focused color palette */
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
+    /* Professional Dark Theme - User-Friendly Color Palette */
+    --background: 222 15% 9%;      /* Deep charcoal - main background */
+    --foreground: 210 40% 95%;     /* Soft white - main text */
 
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
+    --card: 222 15% 11%;           /* Slightly lighter than background - cards */
+    --card-foreground: 210 40% 95%; /* Same as foreground */
 
-    --popover: 240 5% 6%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 222 15% 13%;        /* Even lighter for popovers */
+    --popover-foreground: 210 40% 95%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 98%;
+    --primary: 217 91% 60%;        /* Modern blue - primary actions */
+    --primary-foreground: 210 40% 95%;
 
-    --secondary: 240 4% 16%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 222 15% 15%;      /* Subtle gray - secondary elements */
+    --secondary-foreground: 210 20% 85%;
 
-    --muted: 240 4% 16%;
-    --muted-foreground: 240 5% 64.9%;
+    --muted: 222 15% 13%;          /* Muted backgrounds */
+    --muted-foreground: 210 15% 70%; /* Muted text */
 
-    --accent: 240 4% 16%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 222 15% 16%;         /* Accent backgrounds */
+    --accent-foreground: 210 30% 90%;
 
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 84% 60%;      /* Vibrant red - errors/delete */
+    --destructive-foreground: 210 40% 95%;
 
-    --border: 240 4% 16%;
-    --input: 240 4% 16%;
-    --ring: 217 91% 60%;
+    --border: 222 15% 18%;         /* Subtle borders */
+    --input: 222 15% 13%;          /* Input backgrounds */
+    --ring: 217 91% 60%;           /* Focus rings - matches primary */
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;             /* Slightly more rounded */
 
-    /* Agent builder specific colors */
-    --code-bg: 240 6% 10%;
-    --code-border: 240 4% 20%;
-    --success: 142 76% 36%;
-    --warning: 38 92% 50%;
-    --info: 199 89% 48%;
+    /* Enhanced semantic colors */
+    --code-bg: 222 15% 8%;
+    --code-border: 222 15% 20%;
+    --success: 142 76% 48%;        /* Keep green for success */
+    --warning: 38 92% 55%;         /* Warmer warning */
+    --info: 200 100% 65%;          /* Bright blue for info */
     
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(262 83% 58%));
-    --gradient-card: linear-gradient(145deg, hsl(240 10% 3.9%), hsl(240 6% 6%));
+    /* Enhanced gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(225 91% 65%));
+    --gradient-card: linear-gradient(145deg, hsl(222 15% 11%), hsl(222 15% 13%));
     
-    /* Shadows */
-    --shadow-glow: 0 0 20px hsl(217 91% 60% / 0.3);
-    --shadow-card: 0 4px 12px hsl(0 0% 0% / 0.4);
+    /* Enhanced shadows */
+    --shadow-glow: 0 0 24px hsl(217 91% 60% / 0.35);
+    --shadow-card: 0 8px 24px hsl(222 50% 4% / 0.5);
 
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Sidebar colors matching the theme */
+    --sidebar-background: 222 15% 9%;     /* Same as main background */
+    --sidebar-foreground: 210 40% 95%;    /* Same as main foreground */
+    --sidebar-primary: 217 91% 60%;       /* Blue for active items */
+    --sidebar-primary-foreground: 210 40% 95%;
+    --sidebar-accent: 222 15% 15%;        /* Hover state */
+    --sidebar-accent-foreground: 210 30% 90%;
+    --sidebar-border: 222 15% 18%;        /* Matches border */
+    --sidebar-ring: 217 91% 60%;          /* Matches primary */
   }
 
   .light {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    /* Light theme - keeping professional and clean */
+    --background: 0 0% 98%;         /* Almost white background */
+    --foreground: 222 15% 15%;      /* Dark text */
 
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;              /* Pure white cards */
+    --card-foreground: 222 15% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
+    --popover-foreground: 222 15% 15%;
 
-    --primary: 217 91% 60%;
+    --primary: 217 91% 50%;         /* Blue for light theme */
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
+    --secondary: 210 20% 92%;       /* Light gray */
+    --secondary-foreground: 222 15% 20%;
 
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
+    --muted: 210 20% 95%;
+    --muted-foreground: 222 15% 45%;
 
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
+    --accent: 210 20% 93%;
+    --accent-foreground: 222 15% 20%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84% 55%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 217 91% 60%;
+    --border: 210 20% 88%;
+    --input: 0 0% 100%;
+    --ring: 217 91% 50%;
 
-    --code-bg: 240 5% 96%;
-    --code-border: 240 5% 84%;
-    --success: 142 76% 36%;
+    --code-bg: 210 20% 97%;
+    --code-border: 210 20% 85%;
+    --success: 142 76% 40%;         /* Keep green for success */
     --warning: 38 92% 50%;
-    --info: 199 89% 48%;
+    --info: 200 100% 50%;
     
-    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(262 83% 58%));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(240 4.8% 95.9%));
-    --shadow-glow: 0 0 20px hsl(217 91% 60% / 0.2);
-    --shadow-card: 0 4px 12px hsl(0 0% 0% / 0.1);
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 50%), hsl(225 91% 55%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(210 20% 95%));
+    --shadow-glow: 0 0 24px hsl(217 91% 50% / 0.2);
+    --shadow-card: 0 8px 24px hsl(0 0% 0% / 0.1);
 
     --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-foreground: 222 15% 15%;
+    --sidebar-primary: 217 91% 50%;
     --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 210 20% 93%;
+    --sidebar-accent-foreground: 222 15% 20%;
+    --sidebar-border: 210 20% 88%;
+    --sidebar-ring: 217 91% 50%;
   }
 }
 
@@ -127,7 +122,125 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html {
+    @apply scrollbar-thin;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground scrollbar-thin;
+  }
+
+  /* Custom Scrollbar Styling for the entire project */
+  /* WebKit-based browsers (Chrome, Safari, Edge) */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.6);
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    background: hsl(var(--primary) / 0.7);
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: hsl(var(--background));
+  }
+
+  /* Thin scrollbar variant for smaller areas */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    border-radius: 3px;
+  }
+
+  /* Hide scrollbar for specific elements but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* WebKit browsers */
+  }
+
+  /* Custom scrollbar for code editors */
+  .monaco-editor .scrollbar {
+    background: hsl(var(--code-bg)) !important;
+  }
+
+  .monaco-editor .scrollbar .slider {
+    background: hsl(var(--border)) !important;
+    border-radius: 4px !important;
+    transition: background-color 0.2s ease !important;
+  }
+
+  .monaco-editor .scrollbar .slider:hover {
+    background: hsl(var(--muted-foreground) / 0.6) !important;
+  }
+
+  .monaco-editor .scrollbar .slider:active {
+    background: hsl(var(--primary) / 0.7) !important;
+  }
+
+  /* Firefox scrollbar styling */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) hsl(var(--background));
+  }
+
+  /* Styled scrollbar for specific areas that need more visibility */
+  .scrollbar-visible::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+
+  .scrollbar-visible::-webkit-scrollbar-thumb {
+    background: linear-gradient(45deg, hsl(var(--primary) / 0.3), hsl(var(--primary) / 0.5));
+    border-radius: 6px;
+    border: 2px solid hsl(var(--background));
+    transition: background 0.2s ease;
+  }
+
+  .scrollbar-visible::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(45deg, hsl(var(--primary) / 0.5), hsl(var(--primary) / 0.7));
+  }
+
+  .scrollbar-visible::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+    border-radius: 6px;
+  }
+
+  /* Dialog and modal scrollbar styling */
+  .dialog-content::-webkit-scrollbar,
+  .modal-content::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .dialog-content::-webkit-scrollbar-thumb,
+  .modal-content::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+
+  .dialog-content::-webkit-scrollbar-thumb:hover,
+  .modal-content::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.6);
   }
 }
