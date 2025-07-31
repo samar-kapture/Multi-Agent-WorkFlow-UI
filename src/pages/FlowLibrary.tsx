@@ -17,6 +17,7 @@ import { Copy } from "lucide-react";
 import { Dialog as UIDialog, DialogContent as UIDialogContent, DialogHeader as UIDialogHeader, DialogTitle as UIDialogTitle, DialogFooter as UIDialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL, CLIENT_ID, WS_URL } from "@/config";
+import { useAuthenticatedFetch } from "@/hooks/useAuthenticatedFetch";
 
 const FlowLibrary = () => {
   const { toast } = useToast();
@@ -30,10 +31,11 @@ const FlowLibrary = () => {
   const [wsDialogOpen, setWsDialogOpen] = useState(false);
   const [wsDialogData, setWsDialogData] = useState<{ wsUrl: string; payload: any } | null>(null);
   const navigate = useNavigate();
+  const authenticatedFetch = useAuthenticatedFetch();
 
   useEffect(() => {
     // Fetch flows
-    fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/graph-structure?skip=0&limit=10`, {
+    authenticatedFetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/graph-structure?skip=0&limit=10`, {
       headers: {
         accept: "application/json",
         // 'ngrok-skip-browser-warning': '69420'
@@ -43,7 +45,7 @@ const FlowLibrary = () => {
       .then(data => setFlows(Array.isArray(data?.graphs) ? data.graphs : []))
       .catch(() => setFlows([]));
     // Fetch bots
-    fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots?skip=0&limit=100`, {
+    authenticatedFetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots?skip=0&limit=100`, {
       headers: {
         accept: "application/json",
         // 'ngrok-skip-browser-warning': '69420'
@@ -197,7 +199,7 @@ const FlowLibrary = () => {
                             <Button variant="destructive" onClick={async () => {
                               setDeleting(true);
                               try {
-                                const res = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/graph-structure/config/${encodeURIComponent(flow.config_id)}`, {
+                                const res = await authenticatedFetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/graph-structure/config/${encodeURIComponent(flow.config_id)}`, {
                                   method: 'DELETE',
                                   headers: {
                                     'accept': 'application/json',

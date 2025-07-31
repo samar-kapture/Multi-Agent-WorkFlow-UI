@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Plus, FileText, Search, Edit, Trash2 } from "lucide-react";
 import { KBDialog } from "./KBDialog";
+import { useAuthenticatedFetch } from "@/hooks/useAuthenticatedFetch";
 
 interface KBLibraryProps {
   open: boolean;
@@ -24,6 +25,7 @@ export const KBLibrary = ({ open, onOpenChange, selectedKBs, onKBSelectionChange
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [kbToDelete, setKbToDelete] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const authenticatedFetch = useAuthenticatedFetch();
 
   useEffect(() => {
     if (open) {
@@ -33,7 +35,7 @@ export const KBLibrary = ({ open, onOpenChange, selectedKBs, onKBSelectionChange
 
   const loadKnowledgebases = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/knowledgebases`, {
+      const res = await authenticatedFetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/knowledgebases`, {
         headers: {
           'accept': 'application/json',
         }
@@ -61,7 +63,7 @@ export const KBLibrary = ({ open, onOpenChange, selectedKBs, onKBSelectionChange
   const handleDeleteKB = async (kbId: string) => {
     setDeleting(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/knowledgebases`, {
+      const res = await authenticatedFetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/knowledgebases`, {
         method: 'DELETE',
         headers: {
           'accept': 'application/json',
@@ -103,13 +105,13 @@ export const KBLibrary = ({ open, onOpenChange, selectedKBs, onKBSelectionChange
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-4xl h-[80vh]">
-          <DialogHeader>
+          <DialogHeader className="pb-0">
             <DialogTitle className="flex items-center gap-2">
               <FileText className="w-5 h-5" />
               Knowledge Base Library
             </DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col h-full -mt-4">
             {/* Header Actions */}
             <div className="flex items-center justify-between gap-4 mb-4">
               <div className="relative flex-1 max-w-sm">

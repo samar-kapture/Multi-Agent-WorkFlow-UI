@@ -3,44 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { SendHorizonal, Loader2, ArrowLeft, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { WS_URL, CLIENT_ID, API_BASE_URL } from "@/config";
-
-function ReengageDialog({ open, onSubmit }: { open: boolean, onSubmit: (time: number, message: string) => void }) {
-  const [time, setTime] = useState(10);
-  const [message, setMessage] = useState("Hi, are you still there?");
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-card p-6 rounded-xl shadow-lg w-full max-w-xs">
-        <h2 className="text-lg font-bold mb-4">Re-engagement Settings</h2>
-        <div className="mb-3">
-          <label className="block text-sm mb-1">Re-engage after (seconds):</label>
-          <input
-            type="number"
-            min={1}
-            value={time}
-            onChange={e => setTime(Number(e.target.value))}
-            className="w-full px-3 py-2 rounded border border-border bg-background"
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-sm mb-1">Re-engagement message:</label>
-          <input
-            type="text"
-            value={message}
-            onChange={e => setMessage(e.target.value)}
-            className="w-full px-3 py-2 rounded border border-border bg-background"
-          />
-        </div>
-        <button
-          className="w-full py-2 rounded bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition"
-          onClick={() => onSubmit(time, message)}
-        >
-          Continue to Chat
-        </button>
-      </div>
-    </div>
-  );
-}
+import { useAuthenticatedFetch } from "@/hooks/useAuthenticatedFetch";
 
 function randomConversationId() {
   return (
@@ -58,11 +21,12 @@ interface SidebarChatProps {
 export const SidebarChat = ({ configId = "", testMode = false }: SidebarChatProps) => {
   const navigate = useNavigate();
   const [flowId, setFlowId] = useState<string | null>(null);
+  const authenticatedFetch = useAuthenticatedFetch();
   
   // Fetch the flow_id based on config_id
   useEffect(() => {
     if (configId) {
-      fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/graph-structure?skip=0&limit=100`, {
+      authenticatedFetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/graph-structure?skip=0&limit=100`, {
         headers: {
           accept: "application/json",
         }
@@ -92,10 +56,7 @@ export const SidebarChat = ({ configId = "", testMode = false }: SidebarChatProp
       </div>
     );
   }
-  // Reengagement config state
-  const [reengageDialogOpen, setReengageDialogOpen] = useState(true);
-  const [reengageTime, setReengageTime] = useState(10);
-  const [reengageMessage, setReengageMessage] = useState("Hi, are you still there?");
+  // Message state and WebSocket management
   const [messages, setMessages] = useState([
     { role: "system", content: "Start a conversation with your agent." },
   ]);
@@ -119,7 +80,6 @@ export const SidebarChat = ({ configId = "", testMode = false }: SidebarChatProp
   }, [configId]);
 
   useEffect(() => {
-    if (reengageDialogOpen) return; // Don't open websocket until dialog is closed
     const socket = new window.WebSocket(WS_URL);
     setWs(socket);
     setWsConnected(false);
@@ -157,21 +117,7 @@ export const SidebarChat = ({ configId = "", testMode = false }: SidebarChatProp
     return () => {
       socket.close();
     };
-  }, [conversationId, reengageDialogOpen]);
-
-  // Render the dialog after all hooks, just before the return
-  if (reengageDialogOpen) {
-    return (
-      <ReengageDialog
-        open={reengageDialogOpen}
-        onSubmit={(time, message) => {
-          setReengageTime(time);
-          setReengageMessage(message);
-          setReengageDialogOpen(false);
-        }}
-      />
-    );
-  }
+  }, [conversationId]);
 
   const sendMessage = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -182,11 +128,7 @@ export const SidebarChat = ({ configId = "", testMode = false }: SidebarChatProp
       client_id: CLIENT_ID,
       config_version: configVersion,
       conversation_id: conversationId,
-      event_type: isInit ? "INIT" : "",
-      reengage: {
-        time: reengageTime,
-        message: reengageMessage
-      }
+      event_type: isInit ? "INIT" : ""
     };
     ws.send(JSON.stringify(payload));
     setMessages((msgs) => [

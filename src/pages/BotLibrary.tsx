@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Book, Search, Edit, Trash2, Play, Copy, Bot } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiService, Bot as BotType, Tool } from "@/services/api";
+import { useAuthenticatedFetch } from "@/hooks/useAuthenticatedFetch";
 
 const BotLibrary = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -19,6 +20,7 @@ const BotLibrary = () => {
   const navigate = useNavigate();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [botToDelete, setBotToDelete] = useState<string | null>(null);
+  const authenticatedFetch = useAuthenticatedFetch();
 
   useEffect(() => {
     loadData();
@@ -31,7 +33,7 @@ const BotLibrary = () => {
   const loadData = async () => {
     try {
       // Fetch bots from API
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots?skip=0&limit=100`, {
+      const res = await authenticatedFetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots?skip=0&limit=100`, {
         headers: {
           'accept': 'application/json',
           // 'ngrok-skip-browser-warning': '69420'
@@ -59,7 +61,7 @@ const BotLibrary = () => {
     }
     // Fetch tool count from API
     try {
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/tools`, {
+      const res = await authenticatedFetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/tools`, {
         headers: {
           'accept': 'application/json',
           // 'ngrok-skip-browser-warning': '69420'
@@ -89,7 +91,7 @@ const BotLibrary = () => {
   const handleDeleteBot = async () => {
     if (!botToDelete) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots/${botToDelete}`, {
+      const res = await authenticatedFetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots/${botToDelete}`, {
         method: 'DELETE',
         headers: {
           'accept': '*/*',
@@ -134,7 +136,7 @@ const BotLibrary = () => {
   const handleCloneBot = async (botId: string) => {
     try {
       // Fetch the latest bot details from the API
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots/${botId}`, {
+      const res = await authenticatedFetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots/${botId}`, {
         headers: {
           'accept': 'application/json',
           // 'ngrok-skip-browser-warning': '69420'

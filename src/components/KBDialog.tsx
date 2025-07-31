@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Upload, FileText, Info, HelpCircle } from "lucide-react";
 import { API_BASE_URL, CLIENT_ID } from "@/config";
+import { useAuthenticatedFetch } from "@/hooks/useAuthenticatedFetch";
 
 interface KBDialogProps {
     open: boolean;
@@ -29,6 +30,7 @@ export const KBDialog = ({ open, onOpenChange, onSave, initialKB }: KBDialogProp
     const [showFileUpload, setShowFileUpload] = useState(false);
     const [error, setError] = useState("");
     const [saving, setSaving] = useState(false);
+    const authenticatedFetch = useAuthenticatedFetch();
 
     // KB type is fixed to RAG for now
 
@@ -131,7 +133,7 @@ export const KBDialog = ({ open, onOpenChange, onSave, initialKB }: KBDialogProp
                     formData.append('file', kbFile);
                 }
 
-                const response = await fetch(
+                const response = await authenticatedFetch(
                     `${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/knowledgebases/${initialKB.kb_id || initialKB.knowledgebase_id}?${queryParams}`,
                     {
                         method: 'PUT',
@@ -167,7 +169,7 @@ export const KBDialog = ({ open, onOpenChange, onSave, initialKB }: KBDialogProp
                 const formData = new FormData();
                 formData.append('file', kbFile);
 
-                const response = await fetch(
+                const response = await authenticatedFetch(
                     `${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/knowledgebases?${queryParams}`,
                     {
                         method: 'POST',

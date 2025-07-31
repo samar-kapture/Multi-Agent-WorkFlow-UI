@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import Editor from '@monaco-editor/react';
 import { Tool } from "@/services/api";
 import { API_BASE_URL, CLIENT_ID } from "@/config";
+import { useAuthenticatedFetch } from "@/hooks/useAuthenticatedFetch";
 
 interface FunctionDialogProps {
   open: boolean;
@@ -35,6 +36,7 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [polling, setPolling] = useState(false);
+  const authenticatedFetch = useAuthenticatedFetch();
 
   useEffect(() => {
     if (open && initialTool) {
@@ -206,7 +208,7 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
       let response;
       if (initialTool) {
         // Update existing tool
-        response = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/tools/${(initialTool as any).tool_id}?${queryParams}`, {
+        response = await authenticatedFetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/tools/${(initialTool as any).tool_id}?${queryParams}`, {
           method: 'PUT',
           headers: {
             'accept': 'application/json',
@@ -216,7 +218,7 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
         });
       } else {
         // Create new tool
-        response = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/tools?${queryParams}`, {
+        response = await authenticatedFetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/tools?${queryParams}`, {
           method: 'POST',
           headers: {
             'accept': 'application/json',
@@ -254,7 +256,7 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
 
   const pollDeploymentStatus = async (taskId: string, toolData: any) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/multiagent-core/celery-tasks/deploy-status/${taskId}`);
+      const response = await authenticatedFetch(`${API_BASE_URL}/multiagent-core/celery-tasks/deploy-status/${taskId}`);
       const data = await response.json();
       
       if (data.state === 'SUCCESS') {
@@ -286,7 +288,7 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl h-[90vh] p-0 gap-0">
+      <DialogContent className="max-w-4xl h-[90vh] p-0 gap-0 flex flex-col">
         <DialogHeader className="p-6 pb-4">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-xl font-bold">
@@ -294,9 +296,10 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
             </DialogTitle>
           </div>
         </DialogHeader>
-        <div className="grid grid-cols-2 gap-6 h-full">
+        
+        <div className="grid grid-cols-2 gap-6 flex-1 px-6 pb-3 min-h-0">
           {/* Left side - Form (scrollable) */}
-          <div className="space-y-4 flex flex-col h-full max-h-[70vh] overflow-auto scrollbar-thin pr-2 pl-6">
+          <div className="space-y-4 overflow-y-auto scrollbar-thin pr-2 min-h-0">
             {/* Custom Function Form */}
             <div className="space-y-2 px-1">
               <Label htmlFor="function-name">Function Name</Label>
@@ -423,7 +426,7 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
             </div>
 
             {/* Environment Variables */}
-            <div className="space-y-3 px-1">
+            <div className="space-y-3 px-1 pb-3">
               <div className="flex items-center justify-between">
                 <Label>Environment Variables</Label>
                 <Button
@@ -472,11 +475,11 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
           </div>
 
           {/* Right side - Code Editor */}
-          <div className="flex flex-col h-full pr-6">
+          <div className="flex flex-col min-h-0">
             {/* Custom Function Code Editor */}
             <div className="flex-1 flex flex-col min-h-0">
               <Label className="mb-2">Function Code</Label>
-              <div className="flex-1 border border-border rounded-lg overflow-hidden">
+              <div className="flex-1 border border-border rounded-lg overflow-hidden min-h-0">
                 <Editor
                   height="100%"
                   defaultLanguage="python"

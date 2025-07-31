@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, Settings, Search, Edit, Trash2 } from "lucide-react";
 import { apiService } from "@/services/api";
 import { FunctionDialog } from "@/components/FunctionDialog";
+import { useAuthenticatedFetch } from "@/hooks/useAuthenticatedFetch";
 
 interface ToolLibraryProps {
   open: boolean;
@@ -30,6 +31,7 @@ export const ToolLibrary = ({ open, onOpenChange, selectedTools, onToolSelection
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [toolToDelete, setToolToDelete] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const authenticatedFetch = useAuthenticatedFetch();
 
   useEffect(() => {
     if (open) {
@@ -39,7 +41,7 @@ export const ToolLibrary = ({ open, onOpenChange, selectedTools, onToolSelection
 
   const loadTools = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/tools`, {
+      const res = await authenticatedFetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/tools`, {
         headers: {
           'accept': 'application/json',
           // 'ngrok-skip-browser-warning': '69420'
@@ -61,7 +63,7 @@ export const ToolLibrary = ({ open, onOpenChange, selectedTools, onToolSelection
     setDeployingTools(prev => ({ ...prev, [tool.task_id]: { ...tool, status: 'deploying' } }));
     const poll = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/multiagent-core/celery-tasks/deploy-status/${tool.task_id}`);
+        const res = await authenticatedFetch(`${API_BASE_URL}/multiagent-core/celery-tasks/deploy-status/${tool.task_id}`);
         const data = await res.json();
         if (data.state === 'SUCCESS') {
           setDeployingTools(prev => {
@@ -128,7 +130,7 @@ export const ToolLibrary = ({ open, onOpenChange, selectedTools, onToolSelection
         env_vars: envVarsStr,
       });
       const url = `${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/tools/${editingTool.tool_id}?${params.toString()}`;
-      const res = await fetch(url, {
+      const res = await authenticatedFetch(url, {
         method: 'PUT',
         headers: {
           'accept': 'application/json',
@@ -157,7 +159,7 @@ export const ToolLibrary = ({ open, onOpenChange, selectedTools, onToolSelection
     setDeleteDialogOpen(false); // Close the dialog immediately
     setDeletingTools(prev => ({ ...prev, [toolToDelete]: true }));
     try {
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/tools`, {
+      const res = await authenticatedFetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/tools`, {
         method: 'DELETE',
         headers: {
           'accept': 'application/json',
@@ -196,7 +198,7 @@ export const ToolLibrary = ({ open, onOpenChange, selectedTools, onToolSelection
 
   const handleEditTool = async (tool: any) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/tools/${tool.tool_id}`, {
+      const res = await authenticatedFetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/tools/${tool.tool_id}`, {
         headers: {
           'accept': 'application/json',
           // 'ngrok-skip-browser-warning': '69420'
@@ -320,13 +322,13 @@ export const ToolLibrary = ({ open, onOpenChange, selectedTools, onToolSelection
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-4xl h-[80vh]">
-          <DialogHeader>
+          <DialogHeader className="pb-0">
             <DialogTitle className="flex items-center gap-2">
               <Settings className="w-5 h-5" />
               Tool Library
             </DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col h-full -mt-4">
             {/* Header Actions */}
             <div className="flex items-center justify-between gap-4 mb-4">
               <div className="relative flex-1 max-w-sm">

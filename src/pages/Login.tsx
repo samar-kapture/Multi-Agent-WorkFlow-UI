@@ -30,22 +30,28 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
 
-    // Hardcoded credentials validation
-    if (username === "admin" && password === "admin" && clientId === "kapture") {
-      // Use auth context to login
-      login(username, clientId);
+    try {
+      const success = await login(username, password, clientId);
       
-      toast({
-        title: "Login Successful",
-        description: `Welcome back, ${username}!`,
-      });
+      if (success) {
+        toast({
+          title: "Login Successful",
+          description: `Welcome back, ${username}!`,
+        });
 
-      // Navigate to bot library page
-      navigate("/");
-    } else {
+        // Navigate to bot library page
+        navigate("/");
+      } else {
+        toast({
+          title: "Login Failed",
+          description: "Invalid credentials. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
       toast({
         title: "Login Failed",
-        description: "Invalid credentials. Please try again.",
+        description: "An error occurred during login. Please try again.",
         variant: "destructive"
       });
     }
@@ -159,8 +165,8 @@ const Login = () => {
             {/* Demo Credentials Info */}
             <div className="mt-6 p-4 bg-accent/10 rounded-lg border border-border/50">
               <p className="text-xs text-muted-foreground text-center">
-                <strong>Demo Credentials:</strong><br />
-                Username: admin • Password: admin • Client: kapture
+                <strong>Enter your credentials to sign in</strong><br />
+                Username and password are required
               </p>
             </div>
           </CardContent>

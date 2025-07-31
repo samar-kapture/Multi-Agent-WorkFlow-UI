@@ -47,13 +47,22 @@ export function AppSidebar() {
   const currentPath = location.pathname;
   const isCollapsed = state === "collapsed";
 
-  const handleLogout = () => {
-    logout();
-    toast({
-      title: "Logged Out",
-      description: "You have been successfully logged out.",
-    });
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out.",
+      });
+      navigate("/login");
+    } catch (error) {
+      toast({
+        title: "Logout Error",
+        description: "There was an issue logging out, but you have been signed out locally.",
+        variant: "destructive"
+      });
+      navigate("/login");
+    }
   };
 
   const isActive = (path: string) => currentPath === path;

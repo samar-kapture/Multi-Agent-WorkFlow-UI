@@ -4,59 +4,39 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Trash2, Plus } from "lucide-react";
 
 interface MessageConfigDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (config: {
     welcomeMessage: string;
-    reEngageMessages: { time: number; message: string }[];
-    closingMessage: string;
+    reEngage: { time: number; message: string };
   }) => void;
   initialConfig?: {
     welcomeMessage: string;
-    reEngageMessages: { time: number; message: string }[];
-    closingMessage: string;
+    reEngage: { time: number; message: string };
   } | null;
 }
 
 export const MessageConfigDialog = ({ open, onOpenChange, onSave, initialConfig }: MessageConfigDialogProps) => {
   const [welcomeMessage, setWelcomeMessage] = useState("Thank you for calling!. I am your virtual assistant. I'm here to help.");
-  const [reEngageMessages, setReEngageMessages] = useState([
-    { time: 30, message: "Are you still there?" },
-    { time: 30, message: "" }
-  ]);
-  const [closingMessage, setClosingMessage] = useState("Thank you for choosing us. We look forward to serving you! Have a great day!");
+  const [reEngage, setReEngage] = useState({ time: 30, message: "Are you still there?" });
 
   useEffect(() => {
     if (initialConfig) {
       setWelcomeMessage(initialConfig.welcomeMessage);
-      setReEngageMessages(initialConfig.reEngageMessages);
-      setClosingMessage(initialConfig.closingMessage);
+      setReEngage(initialConfig.reEngage);
     }
   }, [initialConfig, open]);
 
-  const addReEngageMessage = () => {
-    setReEngageMessages([...reEngageMessages, { time: 30, message: "" }]);
-  };
-
-  const removeReEngageMessage = (index: number) => {
-    setReEngageMessages(reEngageMessages.filter((_, i) => i !== index));
-  };
-
-  const updateReEngageMessage = (index: number, field: 'time' | 'message', value: string | number) => {
-    const updated = reEngageMessages.map((item, i) =>
-      i === index ? { ...item, [field]: value } : item
-    );
-    setReEngageMessages(updated);
+  const updateReEngage = (field: 'time' | 'message', value: string | number) => {
+    setReEngage(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSave = () => {
     onSave({
       welcomeMessage,
-      reEngageMessages,
-      closingMessage
+      reEngage
     });
     onOpenChange(false);
   };
@@ -86,75 +66,37 @@ export const MessageConfigDialog = ({ open, onOpenChange, onSave, initialConfig 
             />
           </div>
 
-          {/* Re-Engage Messages
+          {/* Re-Engage Message */}
           <div className="space-y-3">
             <div>
-              <h3 className="font-medium">Re - Engage</h3>
+              <h3 className="font-medium">Re-Engage</h3>
               <p className="text-sm text-muted-foreground">
                 Configure bot behaviour when the customer is not responding or goes silent
               </p>
             </div>
 
-            <div className="space-y-4">
-              {reEngageMessages.map((item, index) => (
-                <div key={index} className="grid grid-cols-12 gap-4 items-end">
-                  <div className="col-span-1">
-                    <span className="text-sm font-medium">{index + 1}.</span>
-                  </div>
-                  <div className="col-span-2">
-                    <Label className="text-xs">Time</Label>
-                    <div className="flex items-center gap-1">
-                      <Input
-                        type="number"
-                        value={item.time}
-                        onChange={(e) => updateReEngageMessage(index, 'time', parseInt(e.target.value) || 0)}
-                        className="h-8"
-                      />
-                      <span className="text-sm text-muted-foreground">Sec</span>
-                    </div>
-                  </div>
-                  <div className="col-span-8">
-                    <Label className="text-xs">Message</Label>
-                    <Input
-                      value={item.message}
-                      onChange={(e) => updateReEngageMessage(index, 'message', e.target.value)}
-                      placeholder="Enter"
-                      className="h-8"
-                    />
-                  </div>
-                  <div className="col-span-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeReEngageMessage(index)}
-                    >
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+            <div className="grid grid-cols-12 gap-4 items-end">
+              <div className="col-span-2">
+                <Label className="text-xs">Time (seconds)</Label>
+                <Input
+                  type="number"
+                  value={reEngage.time}
+                  onChange={(e) => updateReEngage('time', parseInt(e.target.value) || 0)}
+                  className="h-8"
+                  min="1"
+                />
+              </div>
+              <div className="col-span-10">
+                <Label className="text-xs">Message</Label>
+                <Input
+                  value={reEngage.message}
+                  onChange={(e) => updateReEngage('message', e.target.value)}
+                  placeholder="Enter re-engage message"
+                  className="h-8"
+                />
+              </div>
             </div>
-
-            <Button variant="outline" onClick={addReEngageMessage} className="gap-2">
-              <Plus className="w-4 h-4" />
-              Add
-            </Button>
-          </div> */}
-
-          {/* Closing Message */}
-          {/* <div className="space-y-3">
-            <div>
-              <h3 className="font-medium">Closing / Ending Message</h3>
-              <p className="text-sm text-muted-foreground">
-                Provides a customizable closing message before disconnecting the call
-              </p>
-            </div>
-            <Textarea
-              value={closingMessage}
-              onChange={(e) => setClosingMessage(e.target.value)}
-              className="min-h-[80px]"
-            />
-          </div> */}
+          </div>
         </div>
 
         <div className="flex justify-end gap-2 pt-4 border-t">

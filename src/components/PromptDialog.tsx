@@ -42,7 +42,7 @@ export const PromptDialog = ({ open, onOpenChange, onSave, initialValue = "" }: 
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Enter your agent prompt..."
-              className="min-h-[200px]"
+              className="min-h-[400px]"
             />
           </div>
         </div>

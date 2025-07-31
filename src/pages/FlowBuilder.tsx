@@ -26,6 +26,7 @@ import { Label } from "@/components/ui/label";
 import { Folder, Save, Play, Plus, Download, Trash2, X, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiService, Bot as BotType } from "@/services/api";
+import { useAuthenticatedFetch } from "@/hooks/useAuthenticatedFetch";
 
 // Initial nodes and edges
 const initialNodes: Node[] = [
@@ -106,14 +107,18 @@ function buildBotStructure(nodes: Node[], edges: Edge[]): Record<string, string[
 
 const FlowBuilder = () => {
   // Message config state (same as BotCreator)
-  const [messageConfig, setMessageConfig] = useState<any>({ welcome_message: '', closing_message: '', reengagement_messages: [] });
+  const [messageConfig, setMessageConfig] = useState<any>({ 
+    welcome_message: 'Hello and Welcome! How can I help you today?', 
+    closing_message: '', 
+    reengagement: { time: 30, message: "Are you still there?" }
+  });
   const [showMessageDialog, setShowMessageDialog] = useState(false);
   // Handler for saving message config
   const handleMessageConfig = (config: any) => {
     setMessageConfig({
-      welcome_message: config?.welcomeMessage ?? '',
-      closing_message: config?.closingMessage ?? '',
-      reengagement_messages: Array.isArray(config?.reEngageMessages) ? config.reEngageMessages : []
+      welcome_message: config?.welcomeMessage || 'Hello and Welcome! How can I help you today?',
+      closing_message: '', // Keep for API compatibility but don't use from dialog
+      reengagement: config?.reEngage ?? { time: 30, message: "Are you still there?" }
     });
     toast({
       title: "Message Configuration Saved",
@@ -168,11 +173,12 @@ const FlowBuilder = () => {
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const authenticatedFetch = useAuthenticatedFetch();
 
   useEffect(() => {
     loadAvailableBots();
     // Fetch all bots for node name mapping
-    fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots?skip=0&limit=100`, {
+    authenticatedFetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots?skip=0&limit=100`, {
       headers: {
         'accept': 'application/json',
         // 'ngrok-skip-browser-warning': '69420'
@@ -184,6 +190,7 @@ const FlowBuilder = () => {
     const handleFocus = () => loadAvailableBots();
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Prefill graph if flow_id is present in query string
@@ -197,7 +204,7 @@ const FlowBuilder = () => {
       return;
     }
     // First get all flows to find the config_id for the given flow_id
-    fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/graph-structure?skip=0&limit=100`, {
+    authenticatedFetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/graph-structure?skip=0&limit=100`, {
       headers: {
         'accept': 'application/json',
         // 'ngrok-skip-browser-warning': '69420'
@@ -210,7 +217,7 @@ const FlowBuilder = () => {
         if (!flow || !flow.config_id) return;
         
         // Now fetch the detailed flow data using config_id
-        return fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/graph-structure/config/${encodeURIComponent(flow.config_id)}`, {
+        return authenticatedFetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/graph-structure/config/${encodeURIComponent(flow.config_id)}`, {
           headers: {
             'accept': 'application/json',
             // 'ngrok-skip-browser-warning': '69420'
@@ -278,20 +285,20 @@ const FlowBuilder = () => {
         setFlowName(detailedFlow.config_id || 'Untitled Flow');
         setEditingFlowId(detailedFlow.id || null);
         setMessageConfig({
-          welcome_message: detailedFlow.welcome_message || '',
-          closing_message: '',
-          reengagement_messages: []
+          welcome_message: detailedFlow.welcome_message || 'Hello and Welcome! How can I help you today?',
+          closing_message: detailedFlow.closing_message || '',
+          reengagement: detailedFlow.reengagement || { time: 30, message: "Are you still there?" }
         });
         setIsPrefilled(true);
       })
       .catch(() => {
         // If any error occurs, just continue with empty flow
       });
-  }, [location.search, isPrefilled, setNodes, setEdges, allBots]);
+  }, [location.search, isPrefilled, setNodes, setEdges, allBots, authenticatedFetch]);
 
   const loadAvailableBots = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots?skip=0&limit=100`, {
+      const res = await authenticatedFetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots?skip=0&limit=100`, {
         headers: {
           'accept': 'application/json',
           // 'ngrok-skip-browser-warning': '69420'
@@ -380,12 +387,14 @@ const FlowBuilder = () => {
       const configId = flowName;
       if (editingFlowId) {
         // Update existing flow
-        await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/graph-structure/config`, {
+        await authenticatedFetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/graph-structure/config`, {
           method: "PUT",
           headers: { "Content-Type": "application/json", "accept": "application/json", 'ngrok-skip-browser-warning': '69420' },
           body: JSON.stringify({
             structure: bot_structure,
             welcome_message: messageConfig.welcome_message,
+            closing_message: messageConfig.closing_message,
+            reengagement: messageConfig.reengagement,
           }),
         });
         toast({
@@ -394,7 +403,7 @@ const FlowBuilder = () => {
         });
       } else {
         // Create new flow
-        await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/graph-structure/config`, {
+        await authenticatedFetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/graph-structure/config`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "accept": "application/json", 'ngrok-skip-browser-warning': '69420' },
           body: JSON.stringify({
@@ -402,6 +411,8 @@ const FlowBuilder = () => {
             config_id: configId,
             structure: bot_structure,
             welcome_message: messageConfig.welcome_message,
+            closing_message: messageConfig.closing_message,
+            reengagement: messageConfig.reengagement,
           }),
         });
         toast({
@@ -626,9 +637,8 @@ const FlowBuilder = () => {
         onOpenChange={setShowMessageDialog}
         onSave={handleMessageConfig}
         initialConfig={{
-          welcomeMessage: messageConfig.welcome_message ?? '',
-          closingMessage: messageConfig.closing_message ?? '',
-          reEngageMessages: Array.isArray(messageConfig.reengagement_messages) ? messageConfig.reengagement_messages : []
+          welcomeMessage: messageConfig.welcome_message || 'Hello and Welcome! How can I help you today?',
+          reEngage: messageConfig.reengagement ?? { time: 30, message: "Are you still there?" }
         }}
       />
 

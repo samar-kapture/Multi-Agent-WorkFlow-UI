@@ -8,16 +8,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bot, Save, Play, Settings, X, MessageCircle, FileText } from "lucide-react";
+import { Bot, Save, Play, Settings, X, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { MessageConfigDialog } from "@/components/MessageConfigDialog";
 import { PromptDialog } from "@/components/PromptDialog";
 import { ToolLibrary } from "@/components/ToolLibrary";
 import { KBLibrary } from "@/components/KBLibrary";
 import { apiService, Bot as BotType, Tool } from "@/services/api";
 import { useLocation } from "react-router-dom";
 import { Editor } from "@monaco-editor/react";
+import { useAuthenticatedFetch } from "@/hooks/useAuthenticatedFetch";
 
 const BotCreator = () => {
   // Bot type: true = Intelligent, false = Non-Intelligent
@@ -38,8 +38,6 @@ const BotCreator = () => {
   const [closingKeyword, setClosingKeyword] = useState("");
   const [tone, setTone] = useState("casual");
   const [agentPrompt, setAgentPrompt] = useState("");
-  const [messageConfig, setMessageConfig] = useState<any>({ welcome_message: '', closing_message: '', reengagement_messages: [] });
-  const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [showPromptDialog, setShowPromptDialog] = useState(false);
   const [showToolLibrary, setShowToolLibrary] = useState(false);
   const [showKBLibrary, setShowKBLibrary] = useState(false);
@@ -49,6 +47,7 @@ const BotCreator = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const authenticatedFetch = useAuthenticatedFetch();
 
 
   const models = ["OpenAI", "Azure OpenAI", "Deepseek"];
@@ -69,7 +68,7 @@ const BotCreator = () => {
 
     if (editId) {
       // Edit mode: always fetch from API
-      fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots/${editId}`, {
+      authenticatedFetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots/${editId}`, {
         headers: {
           accept: "application/json",
           // 'ngrok-skip-browser-warning': '69420'
@@ -88,11 +87,6 @@ const BotCreator = () => {
           setTemperature(bot.temperature || 0.3);
           setClosingKeyword(bot.closing_keyword || "");
           setTone(bot.tone || "casual");
-          setMessageConfig({
-            welcome_message: bot.welcome_message ?? '',
-            closing_message: bot.closing_message ?? '',
-            reengagement_messages: bot.reengagement_messages ?? []
-          });
           // Ensure selectedTools is always an array of string IDs
           const toolIds = Array.isArray(bot.tools)
             ? bot.tools.map((t: any) => typeof t === 'object' ? t.tool_id || t.id : t)
@@ -122,7 +116,6 @@ const BotCreator = () => {
           setTemperature(0.3);
           setClosingKeyword("");
           setTone("casual");
-          setMessageConfig({ welcome_message: '', closing_message: '', reengagement_messages: [] });
           setSelectedTools([]);
           setSelectedKBs([]);
           setIsEditing(false);
@@ -130,7 +123,7 @@ const BotCreator = () => {
         });
     } else if (isClone && cloneBotId) {
       // Clone mode: fetch from API, but set name as (Copy) and not editing
-      fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots/${cloneBotId}`, {
+      authenticatedFetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots/${cloneBotId}`, {
         headers: {
           accept: "application/json",
           // 'ngrok-skip-browser-warning': '69420'
@@ -149,11 +142,6 @@ const BotCreator = () => {
           setTemperature(bot.temperature || 0.3);
           setClosingKeyword(bot.closing_keyword || "");
           setTone(bot.tone || "casual");
-          setMessageConfig({
-            welcome_message: bot.welcome_message ?? '',
-            closing_message: bot.closing_message ?? '',
-            reengagement_messages: bot.reengagement_messages ?? []
-          });
           const toolIds2 = Array.isArray(bot.tools)
             ? bot.tools.map((t: any) => typeof t === 'object' ? t.tool_id || t.id : t)
             : [];
@@ -182,11 +170,6 @@ const BotCreator = () => {
             setTemperature(stateBot.temperature || 0.3);
             setClosingKeyword(stateBot.closing_keyword || "");
             setTone(stateBot.tone || "casual");
-            setMessageConfig({
-              welcome_message: stateBot.welcome_message ?? '',
-              closing_message: stateBot.closing_message ?? '',
-              reengagement_messages: stateBot.reengagement_messages ?? []
-            });
             const toolIds3 = Array.isArray(stateBot.tools || stateBot.functions)
               ? (stateBot.tools || stateBot.functions).map((t: any) => typeof t === 'object' ? t.tool_id || t.id : t)
               : [];
@@ -210,7 +193,6 @@ const BotCreator = () => {
             setTemperature(0.3);
             setClosingKeyword("");
             setTone("casual");
-            setMessageConfig({ welcome_message: '', closing_message: '', reengagement_messages: [] });
             setSelectedTools([]);
             setSelectedKBs([]);
             setTimeout(() => {
@@ -231,11 +213,6 @@ const BotCreator = () => {
       setTemperature(stateBot.temperature || 0.3);
       setClosingKeyword(stateBot.closing_keyword || "");
       setTone(stateBot.tone || "casual");
-      setMessageConfig({
-        welcome_message: stateBot.welcome_message ?? '',
-        closing_message: stateBot.closing_message ?? '',
-        reengagement_messages: stateBot.reengagement_messages ?? []
-      });
       const toolIds4 = Array.isArray(stateBot.tools || stateBot.functions)
         ? (stateBot.tools || stateBot.functions).map((t: any) => typeof t === 'object' ? t.tool_id || t.id : t)
         : [];
@@ -262,7 +239,6 @@ const BotCreator = () => {
       setTemperature(0.3);
       setClosingKeyword("");
       setTone("casual");
-      setMessageConfig({ welcome_message: '', closing_message: '', reengagement_messages: [] });
       setSelectedTools([]);
       setSelectedKBs([]);
       setIsEditing(false);
@@ -295,7 +271,7 @@ const BotCreator = () => {
       return;
     }
     try {
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/tools`, {
+      const res = await authenticatedFetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/tools`, {
         headers: {
           'accept': 'application/json',
           // 'ngrok-skip-browser-warning': '69420'
@@ -328,10 +304,8 @@ const BotCreator = () => {
 
   // Load Knowledge Bases from the backend
   const loadKBs = async () => {
-    console.log('loadKBs called with selectedKBs:', selectedKBs);
-    
     try {
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/knowledgebases`, {
+      const res = await authenticatedFetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/knowledgebases`, {
         headers: {
           'accept': 'application/json',
           // 'ngrok-skip-browser-warning': '69420'
@@ -339,10 +313,8 @@ const BotCreator = () => {
       });
       if (!res.ok) throw new Error('Failed to fetch knowledge bases');
       const data = await res.json();
-      console.log('loadKBs - API response:', data);
       
       const kbsArr = Array.isArray(data?.knowledgebases) ? data.knowledgebases : Array.isArray(data) ? data : [];
-      console.log('loadKBs - kbsArr:', kbsArr);
       
       // Map all KBs to consistent format, handling both field naming conventions
       const allMapped = kbsArr.map((kb: any) => ({
@@ -352,8 +324,6 @@ const BotCreator = () => {
         createdAt: kb.created_at || kb.createdAt,
         ...kb
       }));
-      
-      console.log('loadKBs - allMapped:', allMapped);
       
       // If no KBs selected, show empty list but keep all KBs loaded for potential selection
       if (!selectedKBs.length) {
@@ -373,7 +343,6 @@ const BotCreator = () => {
         })
       );
       
-      console.log('loadKBs - filtered result:', filtered);
       setAllKBs(filtered);
     } catch (e) {
       console.error('Failed to load KBs:', e);
@@ -389,7 +358,6 @@ const BotCreator = () => {
       setSelectedTools(bot.functions);
       setSelectedModel(bot.selectedModel);
       setAgentPrompt(bot.agentPrompt);
-      setMessageConfig(bot.messageConfig);
       setIsEditing(true);
       setEditingBotId(botId);
     }
@@ -411,7 +379,6 @@ const BotCreator = () => {
         bot_name: botName,
         bot_description: botDescription,
         user_prompt: agentPrompt,
-        closing_message: messageConfig?.closing_message || "",
         closing_keyword: closingKeyword,
         tone,
         llm_provider: selectedModel,
@@ -425,7 +392,7 @@ const BotCreator = () => {
       let botIdToBind = editingBotId;
       if (isEditing && editingBotId) {
         // Update existing bot (PUT)
-        response = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots/${encodeURIComponent(editingBotId)}`,
+        response = await authenticatedFetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots/${encodeURIComponent(editingBotId)}`,
           {
             method: 'PUT',
             headers: {
@@ -438,7 +405,7 @@ const BotCreator = () => {
         );
       } else {
         // Create new bot (POST)
-        response = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots`, {
+        response = await authenticatedFetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots`, {
           method: 'POST',
           headers: {
             'accept': 'application/json',
@@ -471,7 +438,7 @@ const BotCreator = () => {
           })
           .join('&');
         const bindUrl = `${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/tools/bots/${botIdToBind}?${params}`;
-        const bindRes = await fetch(bindUrl, {
+        const bindRes = await authenticatedFetch(bindUrl, {
           method: 'POST',
           headers: {
             'accept': 'application/json',
@@ -493,7 +460,7 @@ const BotCreator = () => {
             })
             .join('&');
           const kbBindUrl = `${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/knowledgebases/bots/${botIdToBind}?${kbParams}`;
-          const kbBindRes = await fetch(kbBindUrl, {
+          const kbBindRes = await authenticatedFetch(kbBindUrl, {
             method: 'POST',
             headers: {
               'accept': 'application/json',
@@ -552,19 +519,6 @@ const BotCreator = () => {
     setSelectedKBs(selectedKBs.filter(id => id !== kbId));
   };
 
-  const handleMessageConfig = (config: any) => {
-    // Defensive: always ensure reengagement_messages is an array
-    setMessageConfig({
-      welcome_message: config?.welcome_message ?? '',
-      closing_message: config?.closing_message ?? '',
-      reengagement_messages: Array.isArray(config?.reengagement_messages) ? config.reengagement_messages : []
-    });
-    toast({
-      title: "Message Configuration Saved",
-      description: "Message settings have been updated.",
-    });
-  };
-
   const handlePromptSave = (prompt: string) => {
     setAgentPrompt(prompt);
     toast({
@@ -585,9 +539,6 @@ const BotCreator = () => {
   };
 
   const getSelectedKBsData = () => {
-    console.log('getSelectedKBsData - selectedKBs:', selectedKBs);
-    console.log('getSelectedKBsData - allKBs:', allKBs);
-    
     const result = allKBs.filter(kb => {
       return selectedKBs.some((sel: any) => {
         if (!sel) return false;
@@ -599,7 +550,6 @@ const BotCreator = () => {
       });
     });
     
-    console.log('getSelectedKBsData - filtered result:', result);
     return result;
   };
 
@@ -693,7 +643,7 @@ const BotCreator = () => {
                   placeholder="Describe what your bot does..."
                   value={botDescription}
                   onChange={(e) => setBotDescription(e.target.value)}
-                  className="h-11 resize-none"
+                  className="h-20 resize-none"
                   disabled={!isIntelligentBot}
                 />
               </div>
@@ -820,17 +770,21 @@ const BotCreator = () => {
                     </div>
                     <div className="space-y-3">
                       {models.map((model) => (
-                        <div key={model} className="flex items-center gap-3 p-3 border border-border rounded-lg hover:bg-accent/50 transition-colors">
+                        <label 
+                          key={model} 
+                          htmlFor={model} 
+                          className="flex items-center gap-3 p-3 border border-border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer group"
+                        >
                           <input
                             type="radio"
                             id={model}
                             name="model"
                             checked={selectedModel === model}
                             onChange={() => setSelectedModel(model)}
-                            className="w-4 h-4 text-primary"
+                            className="w-4 h-4 text-primary cursor-pointer"
                           />
-                          <Label htmlFor={model} className="text-sm font-medium cursor-pointer flex-1">{model}</Label>
-                        </div>
+                          <span className="text-sm font-medium flex-1 cursor-pointer">{model}</span>
+                        </label>
                       ))}
                     </div>
                   </div>
@@ -856,13 +810,13 @@ const BotCreator = () => {
                     </div>
                     <div className="flex-1">
                       {agentPrompt ? (
-                        <div className="p-4 bg-accent/20 border border-border rounded-lg h-full overflow-y-auto">
+                        <div className="p-4 bg-accent/20 border border-border rounded-lg h-40 overflow-hidden">
                           <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                            {agentPrompt}
+                            {agentPrompt.length > 200 ? `${agentPrompt.substring(0, 350)}...` : agentPrompt}
                           </p>
                         </div>
                       ) : (
-                        <div className="p-4 border-2 border-dashed border-border rounded-lg h-full flex items-center justify-center">
+                        <div className="p-4 border-2 border-dashed border-border rounded-lg h-40 flex items-center justify-center">
                           <div className="text-center">
                             <FileText className="w-8 h-8 mx-auto mb-2 text-muted-foreground opacity-50" />
                             <p className="text-sm text-muted-foreground">No agent prompt configured</p>
@@ -1005,17 +959,6 @@ const BotCreator = () => {
       </div>
 
       {/* Dialogs */}
-      <MessageConfigDialog
-        open={showMessageDialog}
-        onOpenChange={setShowMessageDialog}
-        onSave={handleMessageConfig}
-        initialConfig={{
-          welcomeMessage: messageConfig?.welcome_message ?? '',
-          closingMessage: messageConfig?.closing_message ?? '',
-          reEngageMessages: Array.isArray(messageConfig?.reengagement_messages) ? messageConfig.reengagement_messages : []
-        }}
-      />
-
       <PromptDialog
         open={showPromptDialog}
         onOpenChange={setShowPromptDialog}
