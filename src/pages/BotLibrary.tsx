@@ -339,41 +339,43 @@ const BotLibrary = () => {
               </div>
 
               {/* Actions */}
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-1 pt-2">
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => handleTestBot(bot.id)}
-                  className="flex-1 gap-1"
+                  className="flex-1 gap-1 min-w-0 text-xs px-2"
                   disabled
                 >
-                  <Play className="w-3 h-3" />
-                  Test
+                  <Play className="w-3 h-3 flex-shrink-0" />
+                  <span className="hidden sm:inline">Test</span>
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => handleEditBot(bot.id)}
-                  className="flex-1 gap-1"
+                  className="flex-1 gap-1 min-w-0 text-xs px-2"
                 >
-                  <Edit className="w-3 h-3" />
-                  Edit
+                  <Edit className="w-3 h-3 flex-shrink-0" />
+                  <span className="hidden sm:inline">Edit</span>
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => handleCloneBot(bot.id)}
-                  className="gap-1"
+                  className="gap-1 min-w-0 text-xs px-2"
+                  title="Clone"
                 >
-                  <Copy className="w-3 h-3" />
+                  <Copy className="w-3 h-3 flex-shrink-0" />
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => confirmDeleteBot(bot.id)}
-                  className="gap-1 hover:bg-destructive hover:text-destructive-foreground"
+                  className="gap-1 hover:bg-destructive hover:text-destructive-foreground min-w-0 text-xs px-2"
+                  title="Delete"
                 >
-                  <Trash2 className="w-3 h-3" />
+                  <Trash2 className="w-3 h-3 flex-shrink-0" />
                 </Button>
               </div>
             </CardContent>

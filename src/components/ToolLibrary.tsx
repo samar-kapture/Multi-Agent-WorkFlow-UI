@@ -484,10 +484,10 @@ export const ToolLibrary = ({ open, onOpenChange, selectedTools, onToolSelection
           </div>
         </DialogContent>
       </Dialog>
-      <FunctionDialog
+            <FunctionDialog
         open={showFunctionDialog}
         onOpenChange={setShowFunctionDialog}
-        onSave={editingTool ? handleUpdateTool : handleCreateTool}
+        onSave={handleCreateTool}
         initialTool={editingTool}
       />
       {/* Delete Confirmation Dialog */}

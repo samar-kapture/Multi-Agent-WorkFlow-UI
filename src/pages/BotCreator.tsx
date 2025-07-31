@@ -14,6 +14,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { MessageConfigDialog } from "@/components/MessageConfigDialog";
 import { PromptDialog } from "@/components/PromptDialog";
 import { ToolLibrary } from "@/components/ToolLibrary";
+import { KBLibrary } from "@/components/KBLibrary";
 import { apiService, Bot as BotType, Tool } from "@/services/api";
 import { useLocation } from "react-router-dom";
 import { Editor } from "@monaco-editor/react";
@@ -41,6 +42,7 @@ const BotCreator = () => {
   const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [showPromptDialog, setShowPromptDialog] = useState(false);
   const [showToolLibrary, setShowToolLibrary] = useState(false);
+  const [showKBLibrary, setShowKBLibrary] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingBotId, setEditingBotId] = useState<string | null>(null);
 
@@ -99,7 +101,7 @@ const BotCreator = () => {
           
           // Handle Knowledge Bases if present
           const kbIds = Array.isArray(bot.knowledgebases)
-            ? bot.knowledgebases.map((kb: any) => typeof kb === 'object' ? kb.knowledgebase_id || kb.id : kb)
+            ? bot.knowledgebases.map((kb: any) => typeof kb === 'object' ? kb.knowledgebase_id || kb.kb_id || kb.id : kb)
             : [];
           setSelectedKBs(kbIds);
           
@@ -158,7 +160,7 @@ const BotCreator = () => {
           setSelectedTools(toolIds2);
           
           const kbIds2 = Array.isArray(bot.knowledgebases)
-            ? bot.knowledgebases.map((kb: any) => typeof kb === 'object' ? kb.knowledgebase_id || kb.id : kb)
+            ? bot.knowledgebases.map((kb: any) => typeof kb === 'object' ? kb.knowledgebase_id || kb.kb_id || kb.id : kb)
             : [];
           setSelectedKBs(kbIds2);
           
@@ -191,7 +193,7 @@ const BotCreator = () => {
             setSelectedTools(toolIds3);
             
             const kbIds3 = Array.isArray(stateBot.knowledgebases)
-              ? stateBot.knowledgebases.map((kb: any) => typeof kb === 'object' ? kb.knowledgebase_id || kb.id : kb)
+              ? stateBot.knowledgebases.map((kb: any) => typeof kb === 'object' ? kb.knowledgebase_id || kb.kb_id || kb.id : kb)
               : [];
             setSelectedKBs(kbIds3);
             
@@ -240,7 +242,7 @@ const BotCreator = () => {
       setSelectedTools(toolIds4);
       
       const kbIds4 = Array.isArray(stateBot.knowledgebases)
-        ? stateBot.knowledgebases.map((kb: any) => typeof kb === 'object' ? kb.knowledgebase_id || kb.id : kb)
+        ? stateBot.knowledgebases.map((kb: any) => typeof kb === 'object' ? kb.knowledgebase_id || kb.kb_id || kb.id : kb)
         : [];
       setSelectedKBs(kbIds4);
       
@@ -326,10 +328,8 @@ const BotCreator = () => {
 
   // Load Knowledge Bases from the backend
   const loadKBs = async () => {
-    if (!selectedKBs.length) {
-      setAllKBs([]);
-      return;
-    }
+    console.log('loadKBs called with selectedKBs:', selectedKBs);
+    
     try {
       const res = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/knowledgebases`, {
         headers: {
@@ -339,25 +339,44 @@ const BotCreator = () => {
       });
       if (!res.ok) throw new Error('Failed to fetch knowledge bases');
       const data = await res.json();
+      console.log('loadKBs - API response:', data);
+      
       const kbsArr = Array.isArray(data?.knowledgebases) ? data.knowledgebases : Array.isArray(data) ? data : [];
-      // Filter for selectedKBs and map to consistent format
-      const mapped = kbsArr
-        .filter((kb: any) =>
-          selectedKBs.some((sel: any) =>
-            sel && typeof sel === 'object'
-              ? (sel.knowledgebase_id === kb.knowledgebase_id || sel.id === kb.knowledgebase_id)
-              : sel === kb.knowledgebase_id
-          )
-        )
-        .map((kb: any) => ({
-          id: kb.knowledgebase_id,
-          name: kb.name,
-          description: kb.description,
-          createdAt: kb.created_at || kb.createdAt,
-          ...kb
-        }));
-      setAllKBs(mapped);
+      console.log('loadKBs - kbsArr:', kbsArr);
+      
+      // Map all KBs to consistent format, handling both field naming conventions
+      const allMapped = kbsArr.map((kb: any) => ({
+        id: kb.knowledgebase_id || kb.kb_id, // Handle both field names
+        name: kb.name || kb.kb_name, // Handle both field names
+        description: kb.description,
+        createdAt: kb.created_at || kb.createdAt,
+        ...kb
+      }));
+      
+      console.log('loadKBs - allMapped:', allMapped);
+      
+      // If no KBs selected, show empty list but keep all KBs loaded for potential selection
+      if (!selectedKBs.length) {
+        setAllKBs([]);
+        return;
+      }
+      
+      // Filter for selectedKBs with more robust matching
+      const filtered = allMapped.filter((kb: any) =>
+        selectedKBs.some((sel: any) => {
+          if (!sel) return false;
+          if (typeof sel === 'object') {
+            return (sel.knowledgebase_id === kb.id || sel.kb_id === kb.id || sel.id === kb.id);
+          }
+          // Handle string comparison with type conversion
+          return String(sel) === String(kb.id);
+        })
+      );
+      
+      console.log('loadKBs - filtered result:', filtered);
+      setAllKBs(filtered);
     } catch (e) {
+      console.error('Failed to load KBs:', e);
       setAllKBs([]);
     }
   };
@@ -468,7 +487,7 @@ const BotCreator = () => {
             .filter(id => id !== null && id !== undefined)
             .map(id => {
               const safeId = id as any;
-              let kbId = typeof safeId === 'object' ? (safeId.knowledgebase_id || safeId.id) : safeId;
+              let kbId = typeof safeId === 'object' ? (safeId.knowledgebase_id || safeId.kb_id || safeId.id) : safeId;
               if (typeof kbId !== 'string') kbId = String(kbId);
               return `knowledgebase_ids=${encodeURIComponent(kbId.trim())}`;
             })
@@ -566,13 +585,22 @@ const BotCreator = () => {
   };
 
   const getSelectedKBsData = () => {
-    return allKBs.filter(kb =>
-      selectedKBs.some((sel: any) =>
-        sel && typeof sel === 'object'
-          ? (sel.knowledgebase_id === kb.id || sel.id === kb.id)
-          : sel === kb.id
-      )
-    );
+    console.log('getSelectedKBsData - selectedKBs:', selectedKBs);
+    console.log('getSelectedKBsData - allKBs:', allKBs);
+    
+    const result = allKBs.filter(kb => {
+      return selectedKBs.some((sel: any) => {
+        if (!sel) return false;
+        if (typeof sel === 'object') {
+          return (sel.knowledgebase_id === kb.id || sel.kb_id === kb.id || sel.id === kb.id);
+        }
+        // Handle string comparison with type conversion
+        return String(sel) === String(kb.id);
+      });
+    });
+    
+    console.log('getSelectedKBsData - filtered result:', result);
+    return result;
   };
 
   return (
@@ -770,128 +798,48 @@ const BotCreator = () => {
         </Card>
 
         {/* Advanced sections only for intelligent bots */}
-        {/* ...existing code... */}
-
         {isIntelligentBot && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Left Column: Tools */}
-            <div className="space-y-8">
-              <Card className="shadow-card">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
+          <>
+            {/* LLM Model Configuration - Full Width */}
+            <Card className="shadow-card">
+              <CardHeader>
+                <CardTitle className="text-xl">LLM Model</CardTitle>
+                <CardDescription>
+                  Select the language model that will power your bot's intelligence.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Left Column: Model Selection */}
+                  <div className="space-y-4">
                     <div>
-                      <CardTitle className="flex items-center gap-2 text-xl">
-                        <Settings className="w-5 h-5" />
-                        Tools & Knowledge Bases
-                      </CardTitle>
-                      <CardDescription className="mt-2">
-                        Select and manage tools/functions and knowledge bases that are essential for the bot operations.
-                      </CardDescription>
+                      <Label className="text-sm font-medium">Model Provider</Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Choose your preferred language model provider
+                      </p>
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => setShowToolLibrary(true)}
-                        variant="outline"
-                        className="gap-2 px-4"
-                      >
-                        <Settings className="w-4 h-4" />
-                        Manage Tools
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {selectedTools.length === 0 && selectedKBs.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground border-2 border-dashed border-border rounded-xl">
-                      <Settings className="w-8 h-8 mx-auto mb-3 opacity-50" />
-                      <p className="font-medium">No Tools or Knowledge Bases Selected</p>
-                      <p className="text-sm mt-1">Select tools/KBs from the library or create new ones</p>
-                    </div>
-                  ) : null}
-                  {/* Always show selected tools and KBs summary, even if empty */}
-                  <div className="space-y-3 mt-2">
-                    {/* Display Tools */}
-                    {getSelectedToolsData().map((tool) => (
-                      <div key={`tool-${tool.id}`} className="flex items-center justify-between p-4 border border-border rounded-xl bg-card/50">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <div className="font-medium text-foreground">{tool.name}</div>
-                            <Badge variant="secondary" className="text-xs">Tool</Badge>
-                          </div>
-                          <div className="text-sm text-muted-foreground mt-1">{tool.description}</div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            Created: {tool.createdAt ? new Date(tool.createdAt).toLocaleDateString() : ''}
-                          </div>
+                    <div className="space-y-3">
+                      {models.map((model) => (
+                        <div key={model} className="flex items-center gap-3 p-3 border border-border rounded-lg hover:bg-accent/50 transition-colors">
+                          <input
+                            type="radio"
+                            id={model}
+                            name="model"
+                            checked={selectedModel === model}
+                            onChange={() => setSelectedModel(model)}
+                            className="w-4 h-4 text-primary"
+                          />
+                          <Label htmlFor={model} className="text-sm font-medium cursor-pointer flex-1">{model}</Label>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveTool(tool.id)}
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ))}
-                    
-                    {/* Display Knowledge Bases */}
-                    {getSelectedKBsData().map((kb) => (
-                      <div key={`kb-${kb.id}`} className="flex items-center justify-between p-4 border border-border rounded-xl bg-card/50">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <div className="font-medium text-foreground">{kb.name}</div>
-                            <Badge variant="outline" className="text-xs">Knowledge Base</Badge>
-                          </div>
-                          <div className="text-sm text-muted-foreground mt-1">{kb.description}</div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            Created: {kb.createdAt ? new Date(kb.createdAt).toLocaleDateString() : ''}
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveKB(kb.id)}
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Right Column: Model Selection, Prompt, Message Config */}
-            <div className="space-y-8">
-              <Card className="shadow-card">
-                <CardHeader>
-                  <CardTitle className="text-xl">LLM Model</CardTitle>
-                  <CardDescription>
-                    Select the language model that will power your bot's intelligence.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 gap-4">
-                    {models.map((model) => (
-                      <div key={model} className="flex items-center gap-3 p-3 border border-border rounded-lg hover:bg-accent/50 transition-colors">
-                        <input
-                          type="radio"
-                          id={model}
-                          name="model"
-                          checked={selectedModel === model}
-                          onChange={() => setSelectedModel(model)}
-                          className="w-4 h-4 text-primary"
-                        />
-                        <Label htmlFor={model} className="text-sm font-medium cursor-pointer flex-1">{model}</Label>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
 
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
+                  {/* Right Column: Agent Prompt */}
+                  <div className="flex flex-col h-full">
+                    <div className="flex items-center justify-between mb-4">
                       <div>
-                        <Label>Agent Prompt</Label>
+                        <Label className="text-sm font-medium">Agent Prompt</Label>
                         <p className="text-xs text-muted-foreground mt-1">
                           Configure the system prompt that defines your agent's behavior
                         </p>
@@ -906,39 +854,153 @@ const BotCreator = () => {
                         Configure
                       </Button>
                     </div>
-                    {agentPrompt && (
-                      <div className="p-3 bg-accent/20 border border-border rounded-lg">
-                        <p className="text-sm text-muted-foreground">
-                          {agentPrompt.substring(0, 100)}
-                          {agentPrompt.length > 100 ? "..." : ""}
-                        </p>
-                      </div>
-                    )}
+                    <div className="flex-1">
+                      {agentPrompt ? (
+                        <div className="p-4 bg-accent/20 border border-border rounded-lg h-full overflow-y-auto">
+                          <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                            {agentPrompt}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="p-4 border-2 border-dashed border-border rounded-lg h-full flex items-center justify-center">
+                          <div className="text-center">
+                            <FileText className="w-8 h-8 mx-auto mb-2 text-muted-foreground opacity-50" />
+                            <p className="text-sm text-muted-foreground">No agent prompt configured</p>
+                            <p className="text-xs text-muted-foreground mt-1">Click Configure to set up your agent's behavior</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
 
-                  {/* <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Message Configuration</Label>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Configure welcome, closing, and re-engagement messages
-                        </p>
-                      </div>
+            {/* Tools and Knowledge Bases - Side by Side */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Left Column: Tools */}
+              <Card className="shadow-card">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2 text-xl">
+                        <Settings className="w-5 h-5" />
+                        Tools
+                      </CardTitle>
+                      <CardDescription className="mt-2">
+                        Select and manage custom functions that are essential for the bot operations.
+                      </CardDescription>
+                    </div>
+                    <div className="flex gap-2">
                       <Button
-                        onClick={() => setShowMessageDialog(true)}
+                        onClick={() => setShowToolLibrary(true)}
                         variant="outline"
-                        size="sm"
-                        className="gap-2"
+                        className="gap-2 px-4"
                       >
-                        <MessageCircle className="w-4 h-4" />
-                        Configure
+                        <Settings className="w-4 h-4" />
+                        Tool Library
                       </Button>
                     </div>
-                  </div> */}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {selectedTools.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground border-2 border-dashed border-border rounded-xl">
+                      <Settings className="w-8 h-8 mx-auto mb-3 opacity-50" />
+                      <p className="font-medium">No Tools Selected</p>
+                      <p className="text-sm mt-1">Select tools from the library or create new ones</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {getSelectedToolsData().map((tool) => (
+                        <div key={`tool-${tool.id}`} className="flex items-center justify-between p-4 border border-border rounded-xl bg-card/50">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <div className="font-medium text-foreground">{tool.name}</div>
+                              <Badge variant="secondary" className="text-xs">Tool</Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground mt-1">{tool.description}</div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Created: {tool.createdAt ? new Date(tool.createdAt).toLocaleDateString() : ''}
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveTool(tool.id)}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Right Column: Knowledge Bases */}
+              <Card className="shadow-card">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2 text-xl">
+                        <FileText className="w-5 h-5" />
+                        Knowledge Bases
+                      </CardTitle>
+                      <CardDescription className="mt-2">
+                        Select and manage knowledge bases that provide context and information to your bot.
+                      </CardDescription>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => setShowKBLibrary(true)}
+                        variant="outline"
+                        className="gap-2 px-4"
+                      >
+                        <FileText className="w-4 h-4" />
+                        KB Library
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {selectedKBs.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground border-2 border-dashed border-border rounded-xl">
+                      <FileText className="w-8 h-8 mx-auto mb-3 opacity-50" />
+                      <p className="font-medium">No Knowledge Bases Selected</p>
+                      <p className="text-sm mt-1">Select KBs from the library or create new ones</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {getSelectedKBsData().map((kb) => (
+                        <div key={`kb-${kb.id}`} className="flex items-center justify-between p-4 border border-border rounded-xl bg-card/50">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <div className="font-medium text-foreground">{kb.name}</div>
+                              <Badge variant="outline" className="text-xs">Knowledge Base</Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground mt-1">{kb.description}</div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Created: {kb.createdAt ? new Date(kb.createdAt).toLocaleDateString() : ''}
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveKB(kb.id)}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
-          </div>
+          </>
         )}
       </div>
 
@@ -966,6 +1028,13 @@ const BotCreator = () => {
         onOpenChange={setShowToolLibrary}
         selectedTools={selectedTools}
         onToolSelectionChange={setSelectedTools}
+      />
+
+      <KBLibrary
+        open={showKBLibrary}
+        onOpenChange={setShowKBLibrary}
+        selectedKBs={selectedKBs}
+        onKBSelectionChange={setSelectedKBs}
       />
     </>
   );
