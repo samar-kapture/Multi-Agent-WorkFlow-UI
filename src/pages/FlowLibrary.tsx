@@ -12,8 +12,9 @@ import {
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Settings, Plus, Trash2 } from "lucide-react";
+import { Settings, Plus, Trash2, Info } from "lucide-react";
 import { Copy } from "lucide-react";
+import { Dialog as UIDialog, DialogContent as UIDialogContent, DialogHeader as UIDialogHeader, DialogTitle as UIDialogTitle, DialogFooter as UIDialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL, CLIENT_ID, WS_URL } from "@/config";
 
@@ -25,24 +26,27 @@ const FlowLibrary = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [flowToDelete, setFlowToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  // For WebSocket details popup
+  const [wsDialogOpen, setWsDialogOpen] = useState(false);
+  const [wsDialogData, setWsDialogData] = useState<{ wsUrl: string; payload: any } | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     // Fetch flows
-    fetch(`${API_BASE_URL}/multiagent-core/graph_structure/bot-structure`, {
+    fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/graph-structure?skip=0&limit=10`, {
       headers: {
         accept: "application/json",
-        'ngrok-skip-browser-warning': '69420'
+        // 'ngrok-skip-browser-warning': '69420'
       }
     })
       .then(res => res.json())
-      .then(data => setFlows(Array.isArray(data) ? data : []))
+      .then(data => setFlows(Array.isArray(data?.graphs) ? data.graphs : []))
       .catch(() => setFlows([]));
     // Fetch bots
-    fetch(`${API_BASE_URL}/multiagent-core/bot/clients/${CLIENT_ID}/bots?skip=0&limit=100`, {
+    fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots?skip=0&limit=100`, {
       headers: {
         accept: "application/json",
-        'ngrok-skip-browser-warning': '69420'
+        // 'ngrok-skip-browser-warning': '69420'
       }
     })
       .then(res => res.json())
@@ -114,7 +118,10 @@ const FlowLibrary = () => {
                     >
                       <CardTitle className="text-base font-semibold truncate mb-1 flex items-center gap-2">
                         {flow.config_id}
-                        <span className="ml-1 px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[10px] font-medium">
+                        <span 
+                          className="ml-1 px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[10px] font-medium"
+                          onClick={e => e.stopPropagation()}
+                        >
                           {flow.id}
                         </span>
                       </CardTitle>
@@ -128,28 +135,13 @@ const FlowLibrary = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
-                      {/* Test Bot button */}
+                      {/* WebSocket URL and payload dialog trigger */}
                       <button
-                        className="text-success hover:text-success-dark opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                        title="Test Bot"
+                        className="text-white hover:text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                        title="Show WebSocket URL & Payload"
                         onClick={e => {
                           e.stopPropagation();
                           e.preventDefault();
-                          window.location.href = `/chat?config_id=${encodeURIComponent(flow.config_id)}&test=true`;
-                        }}
-                        type="button"
-                      >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-play"><polygon points="5 3 19 12 5 21 5 3" /></svg>
-                      </button>
-
-                      {/* Copy WebSocket URL and payload button */}
-                      <button
-                        className="text-primary hover:text-primary-dark opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                        title="Copy WebSocket URL & Payload"
-                        onClick={e => {
-                          e.stopPropagation();
-                          e.preventDefault();
-                          // Correct WebSocket URL and payload structure
                           const wsUrl = `${WS_URL}`;
                           const payload = {
                             input: "<User Input>",
@@ -158,15 +150,12 @@ const FlowLibrary = () => {
                             conversation_id: "<Conversation ID>",
                             event_type: "<INIT or empty string>"
                           };
-                          navigator.clipboard.writeText(JSON.stringify({ ws_url: wsUrl, payload }, null, 2));
-                          toast({
-                            title: 'WebSocket URL & Payload copied!',
-                            description: 'Copied as JSON to clipboard.',
-                          });
+                          setWsDialogData({ wsUrl, payload });
+                          setWsDialogOpen(true);
                         }}
                         type="button"
                       >
-                        <Copy className="w-4 h-4" />
+                        <Info className="w-4 h-4" />
                       </button>
                       
                       {/* Delete button with Dialog */}
@@ -208,11 +197,11 @@ const FlowLibrary = () => {
                             <Button variant="destructive" onClick={async () => {
                               setDeleting(true);
                               try {
-                                const res = await fetch(`${API_BASE_URL}/multiagent-core/graph_structure/bot-structure/${flow.id}`, {
+                                const res = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/graph-structure/config/${encodeURIComponent(flow.config_id)}`, {
                                   method: 'DELETE',
                                   headers: {
                                     'accept': 'application/json',
-                                    'ngrok-skip-browser-warning': '69420'
+                                    // 'ngrok-skip-browser-warning': '69420'
                                   }
                                 });
                                 if (res.ok) {
@@ -267,6 +256,46 @@ const FlowLibrary = () => {
           ))}
         </div>
       )}
+
+      {/* WebSocket URL & Payload Dialog */}
+      <UIDialog open={wsDialogOpen} onOpenChange={setWsDialogOpen}>
+        <UIDialogContent>
+          <UIDialogHeader>
+            <UIDialogTitle>WebSocket URL & Payload</UIDialogTitle>
+          </UIDialogHeader>
+          {wsDialogData && (
+            <div className="space-y-4">
+              <div>
+                <div className="font-semibold mb-1">WebSocket URL:</div>
+                <div className="bg-muted px-3 py-2 rounded text-xs font-mono break-all select-all">{wsDialogData.wsUrl}</div>
+              </div>
+              <div>
+                <div className="font-semibold mb-1">Payload:</div>
+                <pre className="bg-muted px-3 py-2 rounded text-xs font-mono overflow-x-auto select-all">
+                  {JSON.stringify(wsDialogData.payload, null, 2)}
+                </pre>
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    if (wsDialogData) {
+                      navigator.clipboard.writeText(JSON.stringify({ ws_url: wsDialogData.wsUrl, payload: wsDialogData.payload }, null, 2));
+                      toast({
+                        title: 'Copied!',
+                        description: 'WebSocket URL & Payload copied as JSON.',
+                      });
+                    }
+                  }}
+                >
+                  <Copy className="w-4 h-4 mr-1" /> Copy JSON
+                </Button>
+              </div>
+            </div>
+          )}
+        </UIDialogContent>
+      </UIDialog>
     </div>
   );
 };

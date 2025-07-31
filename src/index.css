@@ -7,7 +7,8 @@ All colors MUST be HSL.
 */
 
 @layer base {
-  :root {
+  :root,
+  .dark {
     /* Professional Dark Theme - User-Friendly Color Palette */
     --background: 222 15% 9%;      /* Deep charcoal - main background */
     --foreground: 210 40% 95%;     /* Soft white - main text */

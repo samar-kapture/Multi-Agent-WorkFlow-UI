@@ -39,10 +39,10 @@ export const ToolLibrary = ({ open, onOpenChange, selectedTools, onToolSelection
 
   const loadTools = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/tools/clients/${CLIENT_ID}/tools/`, {
+      const res = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/tools`, {
         headers: {
           'accept': 'application/json',
-          'ngrok-skip-browser-warning': '69420'
+          // 'ngrok-skip-browser-warning': '69420'
         }
       });
       if (!res.ok) throw new Error('Failed to fetch tools');
@@ -127,13 +127,13 @@ export const ToolLibrary = ({ open, onOpenChange, selectedTools, onToolSelection
         requirements: requirementsStr,
         env_vars: envVarsStr,
       });
-      const url = `${API_BASE_URL}/multiagent-core/tools/clients/${CLIENT_ID}/update-tools/${editingTool.tool_id}?${params.toString()}`;
+      const url = `${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/tools/${editingTool.tool_id}?${params.toString()}`;
       const res = await fetch(url, {
         method: 'PUT',
         headers: {
           'accept': 'application/json',
           'Content-Type': 'text/plain',
-          'ngrok-skip-browser-warning': '69420'
+          // 'ngrok-skip-browser-warning': '69420'
         },
         body: toolData.code,
       });
@@ -157,12 +157,12 @@ export const ToolLibrary = ({ open, onOpenChange, selectedTools, onToolSelection
     setDeleteDialogOpen(false); // Close the dialog immediately
     setDeletingTools(prev => ({ ...prev, [toolToDelete]: true }));
     try {
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/tools/clients/${CLIENT_ID}/tools`, {
+      const res = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/tools`, {
         method: 'DELETE',
         headers: {
           'accept': 'application/json',
           'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': '69420'
+          // 'ngrok-skip-browser-warning': '69420'
         },
         body: JSON.stringify([toolToDelete]),
       });
@@ -196,10 +196,10 @@ export const ToolLibrary = ({ open, onOpenChange, selectedTools, onToolSelection
 
   const handleEditTool = async (tool: any) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/tools/clients/${CLIENT_ID}/tools/${tool.tool_id}`, {
+      const res = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/tools/${tool.tool_id}`, {
         headers: {
           'accept': 'application/json',
-          'ngrok-skip-browser-warning': '69420'
+          // 'ngrok-skip-browser-warning': '69420'
         }
       });
       if (!res.ok) throw new Error('Failed to fetch tool details');

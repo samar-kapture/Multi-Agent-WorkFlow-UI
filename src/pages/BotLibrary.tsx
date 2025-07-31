@@ -31,10 +31,10 @@ const BotLibrary = () => {
   const loadData = async () => {
     try {
       // Fetch bots from API
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/bot/clients/${CLIENT_ID}/bots?skip=0&limit=100`, {
+      const res = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots?skip=0&limit=100`, {
         headers: {
           'accept': 'application/json',
-          'ngrok-skip-browser-warning': '69420'
+          // 'ngrok-skip-browser-warning': '69420'
         }
       });
       const botsData = await res.json();
@@ -42,16 +42,14 @@ const BotLibrary = () => {
       setBots(botsArr.map(apiBot => {
         const botObj: any = {
           id: apiBot.bot_id,
-          name: apiBot.name,
-          description: apiBot.description,
-          agentPrompt: apiBot.final_prompt,
+          name: apiBot.bot_name,
+          description: apiBot.bot_description,
+          agentPrompt: apiBot.user_prompt,
           createdAt: apiBot.created_at,
           updatedAt: apiBot.updated_at,
           functions: Array.isArray(apiBot.tools)
             ? apiBot.tools.map((t: any) => t.tool_id || t.id)
-            : Array.isArray(apiBot.functions)
-              ? apiBot.functions
-              : [],
+            : [],
         };
         if (Array.isArray(apiBot.tools)) botObj._tools = apiBot.tools;
         return botObj;
@@ -61,10 +59,10 @@ const BotLibrary = () => {
     }
     // Fetch tool count from API
     try {
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/tools/clients/${CLIENT_ID}/tools/`, {
+      const res = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/tools`, {
         headers: {
           'accept': 'application/json',
-          'ngrok-skip-browser-warning': '69420'
+          // 'ngrok-skip-browser-warning': '69420'
         }
       });
       const toolsData = await res.json();
@@ -91,11 +89,11 @@ const BotLibrary = () => {
   const handleDeleteBot = async () => {
     if (!botToDelete) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/bot/clients/${CLIENT_ID}/bots/${botToDelete}`, {
+      const res = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots/${botToDelete}`, {
         method: 'DELETE',
         headers: {
           'accept': '*/*',
-          'ngrok-skip-browser-warning': '69420'
+          // 'ngrok-skip-browser-warning': '69420'
         }
       });
       if (!res.ok) throw new Error('Failed to delete bot');
@@ -136,10 +134,10 @@ const BotLibrary = () => {
   const handleCloneBot = async (botId: string) => {
     try {
       // Fetch the latest bot details from the API
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/bot/clients/${CLIENT_ID}/bots/${botId}`, {
+      const res = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots/${botId}`, {
         headers: {
           'accept': 'application/json',
-          'ngrok-skip-browser-warning': '69420'
+          // 'ngrok-skip-browser-warning': '69420'
         }
       });
       if (!res.ok) throw new Error('Failed to fetch bot');
@@ -147,7 +145,7 @@ const BotLibrary = () => {
       // Remove id, createdAt, updatedAt so it will be treated as a new bot
       const clonedBot = {
         ...bot,
-        name: `${bot.name} (Copy)`
+        bot_name: `${bot.bot_name} (Copy)`
       };
       delete (clonedBot as any).bot_id;
       delete (clonedBot as any).created_at;
@@ -347,6 +345,7 @@ const BotLibrary = () => {
                   variant="outline"
                   onClick={() => handleTestBot(bot.id)}
                   className="flex-1 gap-1"
+                  disabled
                 >
                   <Play className="w-3 h-3" />
                   Test

@@ -1,7 +1,8 @@
 
 import { useEffect, useRef, useState } from "react";
-import { SendHorizonal, Loader2 } from "lucide-react";
-import { WS_URL, CLIENT_ID } from "@/config";
+import { SendHorizonal, Loader2, ArrowLeft, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { WS_URL, CLIENT_ID, API_BASE_URL } from "@/config";
 
 function ReengageDialog({ open, onSubmit }: { open: boolean, onSubmit: (time: number, message: string) => void }) {
   const [time, setTime] = useState(10);
@@ -43,7 +44,7 @@ function ReengageDialog({ open, onSubmit }: { open: boolean, onSubmit: (time: nu
 
 function randomConversationId() {
   return (
-    "conv-" +
+    "multi-conv-" +
     Math.random().toString(36).substring(2, 10) +
     Date.now().toString().slice(-4)
   );
@@ -55,6 +56,31 @@ interface SidebarChatProps {
 }
 
 export const SidebarChat = ({ configId = "", testMode = false }: SidebarChatProps) => {
+  const navigate = useNavigate();
+  const [flowId, setFlowId] = useState<string | null>(null);
+  
+  // Fetch the flow_id based on config_id
+  useEffect(() => {
+    if (configId) {
+      fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/graph-structure?skip=0&limit=100`, {
+        headers: {
+          accept: "application/json",
+        }
+      })
+        .then(res => res.json())
+        .then(data => {
+          const flows = Array.isArray(data?.graphs) ? data.graphs : [];
+          const flow = flows.find(f => f.config_id === configId);
+          if (flow) {
+            setFlowId(flow.id);
+          }
+        })
+        .catch(() => {
+          // If fetch fails, fallback to /flow
+          setFlowId(null);
+        });
+    }
+  }, [configId]);
   // If configId is not provided, show error and do not render chat UI
   if (!configId) {
     return (
@@ -184,6 +210,21 @@ export const SidebarChat = ({ configId = "", testMode = false }: SidebarChatProp
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card backdrop-blur-md sticky top-0 z-10 shadow-sm">
         <div className="flex items-center gap-4">
+          {/* Back/Close Button */}
+          <button
+            className="mr-2 p-2 rounded-full hover:bg-muted transition"
+            onClick={() => {
+              if (flowId) {
+                navigate(`/flow?flow_id=${encodeURIComponent(flowId)}`);
+              } else {
+                navigate('/flow');
+              }
+            }}
+            title="Back to Flow"
+            type="button"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
           <span className="font-bold text-xl text-primary flex items-center gap-2">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-message-square-dots"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z" /><path d="M12 8v.01" /><path d="M16 8v.01" /><path d="M8 8v.01" /></svg>
             Agent Chat
@@ -195,17 +236,17 @@ export const SidebarChat = ({ configId = "", testMode = false }: SidebarChatProp
             </span>
           </span>
         </div>
-      <div className="flex items-center gap-3">
-        <button
-          className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-primary text-primary-foreground shadow hover:bg-primary/90 transition-all duration-150 ml-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50"
-          onClick={startNewConversation}
-          type="button"
-          title="Start a new conversation"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-plus"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-          New
-        </button>
-      </div>
+        <div className="flex items-center gap-3">
+          <button
+            className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-primary text-primary-foreground shadow hover:bg-primary/90 transition-all duration-150 ml-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50"
+            onClick={startNewConversation}
+            type="button"
+            title="Start a new conversation"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-plus"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+            New
+          </button>
+        </div>
       </div>
 
       {/* Chat Messages */}

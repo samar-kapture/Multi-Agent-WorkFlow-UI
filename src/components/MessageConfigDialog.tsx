@@ -76,7 +76,7 @@ export const MessageConfigDialog = ({ open, onOpenChange, onSave, initialConfig 
             <div>
               <h3 className="font-medium">Welcome / Trigger Message</h3>
               <p className="text-sm text-muted-foreground">
-                Provides a customizable greeting to engage users and set the tone for their interaction.
+                The initial greeting message that starts every conversation. This message introduces your bot to users, sets expectations, and establishes a friendly, professional tone for the interaction.
               </p>
             </div>
             <Textarea
@@ -142,7 +142,7 @@ export const MessageConfigDialog = ({ open, onOpenChange, onSave, initialConfig 
           </div> */}
 
           {/* Closing Message */}
-          <div className="space-y-3">
+          {/* <div className="space-y-3">
             <div>
               <h3 className="font-medium">Closing / Ending Message</h3>
               <p className="text-sm text-muted-foreground">
@@ -154,7 +154,7 @@ export const MessageConfigDialog = ({ open, onOpenChange, onSave, initialConfig 
               onChange={(e) => setClosingMessage(e.target.value)}
               className="min-h-[80px]"
             />
-          </div>
+          </div> */}
         </div>
 
         <div className="flex justify-end gap-2 pt-4 border-t">

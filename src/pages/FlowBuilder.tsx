@@ -1,5 +1,5 @@
 import { useCallback, useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { API_BASE_URL, CLIENT_ID } from "@/config";
 import {
   ReactFlow,
@@ -167,14 +167,15 @@ const FlowBuilder = () => {
   const [editingFlowId, setEditingFlowId] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadAvailableBots();
     // Fetch all bots for node name mapping
-    fetch(`${API_BASE_URL}/multiagent-core/bot/clients/${CLIENT_ID}/bots?skip=0&limit=100`, {
+    fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots?skip=0&limit=100`, {
       headers: {
         'accept': 'application/json',
-        'ngrok-skip-browser-warning': '69420'
+        // 'ngrok-skip-browser-warning': '69420'
       }
     })
       .then(res => res.json())
@@ -195,24 +196,38 @@ const FlowBuilder = () => {
       // Try again after allBots is loaded
       return;
     }
-    fetch(`${API_BASE_URL}/multiagent-core/graph_structure/bot-structure`, {
+    // First get all flows to find the config_id for the given flow_id
+    fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/graph-structure?skip=0&limit=100`, {
       headers: {
         'accept': 'application/json',
-        'ngrok-skip-browser-warning': '69420'
+        // 'ngrok-skip-browser-warning': '69420'
       }
     })
       .then(res => res.json())
       .then((data) => {
-        const flow = Array.isArray(data) ? data.find(f => f.id === flowId) : null;
-        if (!flow || !flow.structure) return;
+        const flows = Array.isArray(data?.graphs) ? data.graphs : [];
+        const flow = flows.find(f => f.id === flowId);
+        if (!flow || !flow.config_id) return;
+        
+        // Now fetch the detailed flow data using config_id
+        return fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/graph-structure/config/${encodeURIComponent(flow.config_id)}`, {
+          headers: {
+            'accept': 'application/json',
+            // 'ngrok-skip-browser-warning': '69420'
+          }
+        });
+      })
+      .then(res => res ? res.json() : null)
+      .then((detailedFlow) => {
+        if (!detailedFlow || !detailedFlow.structure) return;
         // Reconstruct nodes and edges from structure
-        const structure = flow.structure;
+        const structure = detailedFlow.structure;
         const nodeIds = Object.keys(structure).filter(id => id !== '__start__');
-        // Map id to name (use id for both availableBots and allBots)
+        // Map id to name (use bot_id and bot_name for new API structure)
         const botIdToName = {};
         allBots.forEach(bot => {
-          if (bot.id) botIdToName[bot.id] = bot.name;
-          if (bot.bot_id) botIdToName[bot.bot_id] = bot.name;
+          if (bot.bot_id) botIdToName[bot.bot_id] = bot.bot_name || bot.name;
+          if (bot.id) botIdToName[bot.id] = bot.bot_name || bot.name;
         });
         // Build nodes
         const newNodes: Node[] = [
@@ -260,27 +275,35 @@ const FlowBuilder = () => {
         });
         setNodes(newNodes);
         setEdges(newEdges);
-        setFlowName(flow.config_id || 'Untitled Flow');
-        setEditingFlowId(flow.id || null);
+        setFlowName(detailedFlow.config_id || 'Untitled Flow');
+        setEditingFlowId(detailedFlow.id || null);
+        setMessageConfig({
+          welcome_message: detailedFlow.welcome_message || '',
+          closing_message: '',
+          reengagement_messages: []
+        });
         setIsPrefilled(true);
+      })
+      .catch(() => {
+        // If any error occurs, just continue with empty flow
       });
   }, [location.search, isPrefilled, setNodes, setEdges, allBots]);
 
   const loadAvailableBots = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/bot/clients/${CLIENT_ID}/bots?skip=0&limit=100`, {
+      const res = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots?skip=0&limit=100`, {
         headers: {
           'accept': 'application/json',
-          'ngrok-skip-browser-warning': '69420'
+          // 'ngrok-skip-browser-warning': '69420'
         }
       });
       const botsData = await res.json();
       const botsArr = Array.isArray(botsData?.bots) ? botsData.bots : [];
       setAvailableBots(botsArr.map(apiBot => ({
-        id: apiBot.id || apiBot.bot_id, // prefer id, fallback to bot_id
-        name: apiBot.name,
-        description: apiBot.description,
-        agentPrompt: apiBot.final_prompt,
+        id: apiBot.bot_id || apiBot.id, // prefer bot_id, fallback to id
+        name: apiBot.bot_name || apiBot.name,
+        description: apiBot.bot_description || apiBot.description,
+        agentPrompt: apiBot.user_prompt || apiBot.final_prompt,
         createdAt: apiBot.created_at,
         updatedAt: apiBot.updated_at,
         functions: [],
@@ -353,11 +376,11 @@ const FlowBuilder = () => {
   const saveFlow = async () => {
     try {
       const bot_structure = buildBotStructure(nodes, edges);
-      // Convert spaces to underscores for config_id
-      const configId = flowName.replace(/\s+/g, '_');
+      // Use flow name as-is without any modifications
+      const configId = flowName;
       if (editingFlowId) {
         // Update existing flow
-        await fetch(`${API_BASE_URL}/multiagent-core/graph_structure/bot-structure/${editingFlowId}`, {
+        await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/graph-structure/config`, {
           method: "PUT",
           headers: { "Content-Type": "application/json", "accept": "application/json", 'ngrok-skip-browser-warning': '69420' },
           body: JSON.stringify({
@@ -371,7 +394,7 @@ const FlowBuilder = () => {
         });
       } else {
         // Create new flow
-        await fetch(`${API_BASE_URL}/multiagent-core/graph_structure/bot-structure`, {
+        await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/graph-structure/config`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "accept": "application/json", 'ngrok-skip-browser-warning': '69420' },
           body: JSON.stringify({
@@ -467,8 +490,8 @@ const FlowBuilder = () => {
           </Button>
           <Button
             onClick={() => {
-              const configId = flowName.replace(/\s+/g, '_');
-              window.location.href = `/chat?config_id=${encodeURIComponent(configId)}&test=true`;
+              const configId = flowName;
+              navigate(`/chat?config_id=${encodeURIComponent(configId)}&test=true`);
             }}
             size="sm"
             variant="outline"

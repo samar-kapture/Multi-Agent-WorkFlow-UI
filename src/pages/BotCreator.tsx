@@ -8,10 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bot, Save, Play, Settings, Plus, X, MessageCircle, FileText } from "lucide-react";
+import { Bot, Save, Play, Settings, X, MessageCircle, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { FunctionDialog } from "@/components/FunctionDialog";
 import { MessageConfigDialog } from "@/components/MessageConfigDialog";
 import { PromptDialog } from "@/components/PromptDialog";
 import { ToolLibrary } from "@/components/ToolLibrary";
@@ -28,7 +27,9 @@ const BotCreator = () => {
   const [botDescription, setBotDescription] = useState("");
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const [allTools, setAllTools] = useState<Tool[]>([]);
-  const [selectedModel, setSelectedModel] = useState("OpenAI");
+  const [selectedKBs, setSelectedKBs] = useState<string[]>([]);
+  const [allKBs, setAllKBs] = useState<any[]>([]);
+  const [selectedModel, setSelectedModel] = useState("Azure OpenAI");
   const [engineModel] = useState("gpt-4o"); // static as per requirements
   const [engineAuth] = useState(""); // static empty
   const [maxToken, setMaxToken] = useState(400);
@@ -37,7 +38,6 @@ const BotCreator = () => {
   const [tone, setTone] = useState("casual");
   const [agentPrompt, setAgentPrompt] = useState("");
   const [messageConfig, setMessageConfig] = useState<any>({ welcome_message: '', closing_message: '', reengagement_messages: [] });
-  const [showFunctionDialog, setShowFunctionDialog] = useState(false);
   const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [showPromptDialog, setShowPromptDialog] = useState(false);
   const [showToolLibrary, setShowToolLibrary] = useState(false);
@@ -49,7 +49,7 @@ const BotCreator = () => {
   const [searchParams] = useSearchParams();
 
 
-  const models = ["Gemini", "OpenAI", "Deepseek"];
+  const models = ["OpenAI", "Azure OpenAI", "Deepseek"];
   const toneOptions = ["casual", "professional", "friendly"];
 
   // Load all tools on mount and whenever selectedTools changes
@@ -67,10 +67,10 @@ const BotCreator = () => {
 
     if (editId) {
       // Edit mode: always fetch from API
-      fetch(`${API_BASE_URL}/multiagent-core/bot/clients/${CLIENT_ID}/bots/${editId}`, {
+      fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots/${editId}`, {
         headers: {
           accept: "application/json",
-          'ngrok-skip-browser-warning': '69420'
+          // 'ngrok-skip-browser-warning': '69420'
         }
       })
         .then(res => {
@@ -78,10 +78,10 @@ const BotCreator = () => {
           return res.json();
         })
         .then(bot => {
-          setBotName(bot.name || "");
-          setBotDescription(bot.description || "");
+          setBotName(bot.bot_name || "");
+          setBotDescription(bot.bot_description || "");
           setAgentPrompt(bot.user_prompt || "");
-          setSelectedModel(bot.llm_model || "OpenAI");
+          setSelectedModel(bot.llm_provider || "Azure OpenAI");
           setMaxToken(bot.max_token || 400);
           setTemperature(bot.temperature || 0.3);
           setClosingKeyword(bot.closing_keyword || "");
@@ -92,11 +92,21 @@ const BotCreator = () => {
             reengagement_messages: bot.reengagement_messages ?? []
           });
           // Ensure selectedTools is always an array of string IDs
-          const toolIds = Array.isArray(bot.tools || bot.functions)
-            ? (bot.tools || bot.functions).map((t: any) => typeof t === 'object' ? t.tool_id || t.id : t)
+          const toolIds = Array.isArray(bot.tools)
+            ? bot.tools.map((t: any) => typeof t === 'object' ? t.tool_id || t.id : t)
             : [];
           setSelectedTools(toolIds);
-          setTimeout(() => loadTools(), 0);
+          
+          // Handle Knowledge Bases if present
+          const kbIds = Array.isArray(bot.knowledgebases)
+            ? bot.knowledgebases.map((kb: any) => typeof kb === 'object' ? kb.knowledgebase_id || kb.id : kb)
+            : [];
+          setSelectedKBs(kbIds);
+          
+          setTimeout(() => {
+            loadTools();
+            loadKBs();
+          }, 0);
           setIsEditing(true);
           setEditingBotId(editId);
         })
@@ -105,22 +115,23 @@ const BotCreator = () => {
           setBotName("");
           setBotDescription("");
           setAgentPrompt("");
-          setSelectedModel("OpenAI");
+          setSelectedModel("Azure OpenAI");
           setMaxToken(400);
           setTemperature(0.3);
           setClosingKeyword("");
           setTone("casual");
           setMessageConfig({ welcome_message: '', closing_message: '', reengagement_messages: [] });
           setSelectedTools([]);
+          setSelectedKBs([]);
           setIsEditing(false);
           setEditingBotId(null);
         });
     } else if (isClone && cloneBotId) {
       // Clone mode: fetch from API, but set name as (Copy) and not editing
-      fetch(`${API_BASE_URL}/multiagent-core/bot/clients/${CLIENT_ID}/bots/${cloneBotId}`, {
+      fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots/${cloneBotId}`, {
         headers: {
           accept: "application/json",
-          'ngrok-skip-browser-warning': '69420'
+          // 'ngrok-skip-browser-warning': '69420'
         }
       })
         .then(res => {
@@ -128,10 +139,10 @@ const BotCreator = () => {
           return res.json();
         })
         .then(bot => {
-          setBotName(`${bot.name} (Copy)` || "");
-          setBotDescription(bot.description || "");
+          setBotName(`${bot.bot_name} (Copy)` || "");
+          setBotDescription(bot.bot_description || "");
           setAgentPrompt(bot.user_prompt || "");
-          setSelectedModel(bot.llm_model || "OpenAI");
+          setSelectedModel(bot.llm_provider || "Azure OpenAI");
           setMaxToken(bot.max_token || 400);
           setTemperature(bot.temperature || 0.3);
           setClosingKeyword(bot.closing_keyword || "");
@@ -141,21 +152,30 @@ const BotCreator = () => {
             closing_message: bot.closing_message ?? '',
             reengagement_messages: bot.reengagement_messages ?? []
           });
-          const toolIds2 = Array.isArray(bot.tools || bot.functions)
-            ? (bot.tools || bot.functions).map((t: any) => typeof t === 'object' ? t.tool_id || t.id : t)
+          const toolIds2 = Array.isArray(bot.tools)
+            ? bot.tools.map((t: any) => typeof t === 'object' ? t.tool_id || t.id : t)
             : [];
           setSelectedTools(toolIds2);
-          setTimeout(() => loadTools(), 0);
+          
+          const kbIds2 = Array.isArray(bot.knowledgebases)
+            ? bot.knowledgebases.map((kb: any) => typeof kb === 'object' ? kb.knowledgebase_id || kb.id : kb)
+            : [];
+          setSelectedKBs(kbIds2);
+          
+          setTimeout(() => {
+            loadTools();
+            loadKBs();
+          }, 0);
           setIsEditing(false);
           setEditingBotId(null);
         })
         .catch(() => {
           // If fetch fails, fallback to stateBot if available
           if (stateBot) {
-            setBotName(`${stateBot.name} (Copy)` || "");
-            setBotDescription(stateBot.description || "");
+            setBotName(`${stateBot.bot_name || stateBot.name} (Copy)` || "");
+            setBotDescription(stateBot.bot_description || stateBot.description || "");
             setAgentPrompt(stateBot.user_prompt || "");
-            setSelectedModel(stateBot.llm_model || "OpenAI");
+            setSelectedModel(stateBot.llm_provider || stateBot.llm_model || "Azure OpenAI");
             setMaxToken(stateBot.max_token || 400);
             setTemperature(stateBot.temperature || 0.3);
             setClosingKeyword(stateBot.closing_keyword || "");
@@ -169,29 +189,42 @@ const BotCreator = () => {
               ? (stateBot.tools || stateBot.functions).map((t: any) => typeof t === 'object' ? t.tool_id || t.id : t)
               : [];
             setSelectedTools(toolIds3);
-            setTimeout(() => loadTools(), 0);
+            
+            const kbIds3 = Array.isArray(stateBot.knowledgebases)
+              ? stateBot.knowledgebases.map((kb: any) => typeof kb === 'object' ? kb.knowledgebase_id || kb.id : kb)
+              : [];
+            setSelectedKBs(kbIds3);
+            
+            setTimeout(() => {
+              loadTools();
+              loadKBs();
+            }, 0);
           } else {
             setBotName("");
             setBotDescription("");
             setAgentPrompt("");
-            setSelectedModel("OpenAI");
+            setSelectedModel("Azure OpenAI");
             setMaxToken(400);
             setTemperature(0.3);
             setClosingKeyword("");
             setTone("casual");
             setMessageConfig({ welcome_message: '', closing_message: '', reengagement_messages: [] });
             setSelectedTools([]);
-            setTimeout(() => loadTools(), 0);
+            setSelectedKBs([]);
+            setTimeout(() => {
+              loadTools();
+              loadKBs();
+            }, 0);
           }
           setIsEditing(false);
           setEditingBotId(null);
         });
     } else if (stateBot) {
       // Fallback: prefill from navigation state (for clone)
-      setBotName(isClone ? `${stateBot.name} (Copy)` : stateBot.name || "");
-      setBotDescription(stateBot.description || "");
+      setBotName(isClone ? `${stateBot.bot_name || stateBot.name} (Copy)` : stateBot.bot_name || stateBot.name || "");
+      setBotDescription(stateBot.bot_description || stateBot.description || "");
       setAgentPrompt(stateBot.user_prompt || "");
-      setSelectedModel(stateBot.llm_model || "OpenAI");
+      setSelectedModel(stateBot.llm_provider || stateBot.llm_model || "Azure OpenAI");
       setMaxToken(stateBot.max_token || 400);
       setTemperature(stateBot.temperature || 0.3);
       setClosingKeyword(stateBot.closing_keyword || "");
@@ -205,7 +238,16 @@ const BotCreator = () => {
         ? (stateBot.tools || stateBot.functions).map((t: any) => typeof t === 'object' ? t.tool_id || t.id : t)
         : [];
       setSelectedTools(toolIds4);
-      setTimeout(() => loadTools(), 0);
+      
+      const kbIds4 = Array.isArray(stateBot.knowledgebases)
+        ? stateBot.knowledgebases.map((kb: any) => typeof kb === 'object' ? kb.knowledgebase_id || kb.id : kb)
+        : [];
+      setSelectedKBs(kbIds4);
+      
+      setTimeout(() => {
+        loadTools();
+        loadKBs();
+      }, 0);
       setIsEditing(false);
       setEditingBotId(null);
     } else {
@@ -213,29 +255,36 @@ const BotCreator = () => {
       setBotName("");
       setBotDescription("");
       setAgentPrompt("");
-      setSelectedModel("OpenAI");
+      setSelectedModel("Azure OpenAI");
       setMaxToken(400);
       setTemperature(0.3);
       setClosingKeyword("");
       setTone("casual");
       setMessageConfig({ welcome_message: '', closing_message: '', reengagement_messages: [] });
       setSelectedTools([]);
+      setSelectedKBs([]);
       setIsEditing(false);
       setEditingBotId(null);
     }
   }, [location.state, searchParams]);
 
-  // Always load all tools on mount (not just when selectedTools changes)
+  // Always load all tools and KBs on mount
   useEffect(() => {
     loadTools();
+    loadKBs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Also load tools whenever selectedTools changes (to update the list)
+  // Also load tools and KBs whenever selectedTools or selectedKBs changes
   useEffect(() => {
     loadTools();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTools]);
+
+  useEffect(() => {
+    loadKBs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedKBs]);
 
   // Always load the full tool objects for the selected tool IDs (fetch from backend)
   const loadTools = async () => {
@@ -244,10 +293,10 @@ const BotCreator = () => {
       return;
     }
     try {
-      const res = await fetch(`${API_BASE_URL}/multiagent-core/tools/clients/${CLIENT_ID}/tools/`, {
+      const res = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/tools`, {
         headers: {
           'accept': 'application/json',
-          'ngrok-skip-browser-warning': '69420'
+          // 'ngrok-skip-browser-warning': '69420'
         }
       });
       if (!res.ok) throw new Error('Failed to fetch tools');
@@ -272,6 +321,44 @@ const BotCreator = () => {
       setAllTools(mapped);
     } catch (e) {
       setAllTools([]);
+    }
+  };
+
+  // Load Knowledge Bases from the backend
+  const loadKBs = async () => {
+    if (!selectedKBs.length) {
+      setAllKBs([]);
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/knowledgebases`, {
+        headers: {
+          'accept': 'application/json',
+          // 'ngrok-skip-browser-warning': '69420'
+        }
+      });
+      if (!res.ok) throw new Error('Failed to fetch knowledge bases');
+      const data = await res.json();
+      const kbsArr = Array.isArray(data?.knowledgebases) ? data.knowledgebases : Array.isArray(data) ? data : [];
+      // Filter for selectedKBs and map to consistent format
+      const mapped = kbsArr
+        .filter((kb: any) =>
+          selectedKBs.some((sel: any) =>
+            sel && typeof sel === 'object'
+              ? (sel.knowledgebase_id === kb.knowledgebase_id || sel.id === kb.knowledgebase_id)
+              : sel === kb.knowledgebase_id
+          )
+        )
+        .map((kb: any) => ({
+          id: kb.knowledgebase_id,
+          name: kb.name,
+          description: kb.description,
+          createdAt: kb.created_at || kb.createdAt,
+          ...kb
+        }));
+      setAllKBs(mapped);
+    } catch (e) {
+      setAllKBs([]);
     }
   };
 
@@ -300,18 +387,17 @@ const BotCreator = () => {
     }
 
     try {
-      // Compose API payload
+      // Compose API payload with new field structure
       const payload = {
-        name: botName,
-        description: botDescription,
+        bot_name: botName,
+        bot_description: botDescription,
         user_prompt: agentPrompt,
-        welcome_message: messageConfig?.welcome_message || "",
         closing_message: messageConfig?.closing_message || "",
         closing_keyword: closingKeyword,
         tone,
-        llm_model: selectedModel,
-        engine_model: engineModel,
-        engine_auth: engineAuth,
+        llm_provider: selectedModel,
+        model_name: engineModel,
+        api_key: engineAuth,
         max_token: maxToken,
         temperature: temperature
       };
@@ -320,25 +406,25 @@ const BotCreator = () => {
       let botIdToBind = editingBotId;
       if (isEditing && editingBotId) {
         // Update existing bot (PUT)
-        response = await fetch(`${API_BASE_URL}/multiagent-core/bot/clients/${CLIENT_ID}/bots/${encodeURIComponent(editingBotId)}`,
+        response = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots/${encodeURIComponent(editingBotId)}`,
           {
             method: 'PUT',
             headers: {
               'accept': 'application/json',
               'Content-Type': 'application/json',
-              'ngrok-skip-browser-warning': '69420'
+              // 'ngrok-skip-browser-warning': '69420'
             },
             body: JSON.stringify(payload)
           }
         );
       } else {
         // Create new bot (POST)
-        response = await fetch(`${API_BASE_URL}/multiagent-core/bot/clients/${CLIENT_ID}/bots`, {
+        response = await fetch(`${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/bots`, {
           method: 'POST',
           headers: {
             'accept': 'application/json',
             'Content-Type': 'application/json',
-            'ngrok-skip-browser-warning': '69420'
+            // 'ngrok-skip-browser-warning': '69420'
           },
           body: JSON.stringify(payload)
         });
@@ -365,16 +451,39 @@ const BotCreator = () => {
             return `tool_ids=${encodeURIComponent(toolId.trim().toLowerCase())}`;
           })
           .join('&');
-        const bindUrl = `${API_BASE_URL}/multiagent-core/tools/clients/${CLIENT_ID}/bots/${botIdToBind}/tools/bind?${params}`;
+        const bindUrl = `${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/tools/bots/${botIdToBind}?${params}`;
         const bindRes = await fetch(bindUrl, {
           method: 'POST',
           headers: {
             'accept': 'application/json',
-            'ngrok-skip-browser-warning': '69420'
+            // 'ngrok-skip-browser-warning': '69420'
           },
           body: ''
         });
         if (!bindRes.ok) throw new Error('Failed to bind tools');
+
+        // Bind Knowledge Bases to bot
+        if (selectedKBs.length > 0) {
+          const kbParams = selectedKBs
+            .filter(id => id !== null && id !== undefined)
+            .map(id => {
+              const safeId = id as any;
+              let kbId = typeof safeId === 'object' ? (safeId.knowledgebase_id || safeId.id) : safeId;
+              if (typeof kbId !== 'string') kbId = String(kbId);
+              return `knowledgebase_ids=${encodeURIComponent(kbId.trim())}`;
+            })
+            .join('&');
+          const kbBindUrl = `${API_BASE_URL}/multiagent-core/clients/${CLIENT_ID}/knowledgebases/bots/${botIdToBind}?${kbParams}`;
+          const kbBindRes = await fetch(kbBindUrl, {
+            method: 'POST',
+            headers: {
+              'accept': 'application/json',
+              // 'ngrok-skip-browser-warning': '69420'
+            },
+            body: ''
+          });
+          if (!kbBindRes.ok) throw new Error('Failed to bind knowledge bases');
+        }
       }
 
       toast({
@@ -416,35 +525,12 @@ const BotCreator = () => {
     }
   };
 
-  const handleAddFunction = async (toolData: { name: string; description: string; code: string }) => {
-    try {
-      const newTool = await apiService.createTool(toolData);
-      // Map API fields to internal Tool type
-      const t = newTool as any;
-      const mappedTool = {
-        id: t.tool_id,
-        name: t.original_name || t.name,
-        description: t.description,
-        createdAt: t.created_at || t.createdAt,
-        ...newTool
-      };
-      setAllTools([...allTools, mappedTool]);
-      setSelectedTools([...selectedTools, mappedTool.id]);
-      toast({
-        title: "Tool Created",
-        description: `Tool \"${toolData.name}\" has been created and added to this bot.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create tool. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-
   const handleRemoveTool = (toolId: string) => {
     setSelectedTools(selectedTools.filter(id => id !== toolId));
+  };
+
+  const handleRemoveKB = (kbId: string) => {
+    setSelectedKBs(selectedKBs.filter(id => id !== kbId));
   };
 
   const handleMessageConfig = (config: any) => {
@@ -479,6 +565,16 @@ const BotCreator = () => {
     );
   };
 
+  const getSelectedKBsData = () => {
+    return allKBs.filter(kb =>
+      selectedKBs.some((sel: any) =>
+        sel && typeof sel === 'object'
+          ? (sel.knowledgebase_id === kb.id || sel.id === kb.id)
+          : sel === kb.id
+      )
+    );
+  };
+
   return (
 
     <>
@@ -498,11 +594,20 @@ const BotCreator = () => {
           </div>
           {/* Update/Create and Test buttons always visible */}
           <div className="flex gap-2">
-            <Button onClick={handleTestBot} variant="outline" className="gap-2 px-4">
+            <Button 
+              onClick={handleTestBot} 
+              variant="outline" 
+              className="gap-2 px-4"
+              disabled
+            >
               <Play className="w-4 h-4" />
               Test
             </Button>
-            <Button onClick={handleSaveBot} className="gap-2 px-4">
+            <Button 
+              onClick={handleSaveBot} 
+              className="gap-2 px-4"
+              disabled={!isIntelligentBot}
+            >
               <Save className="w-4 h-4" />
               {isEditing ? 'Update' : 'Create'}
             </Button>
@@ -514,7 +619,14 @@ const BotCreator = () => {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-xl">Bot Details</CardTitle>
+                <div className="flex items-center gap-3">
+                  <CardTitle className="text-xl">Bot Details</CardTitle>
+                  {!isIntelligentBot && (
+                    <Badge variant="secondary" className="text-xs">
+                      Coming Soon
+                    </Badge>
+                  )}
+                </div>
                 <CardDescription>
                   {isIntelligentBot ? "Define your bot's basic information and identity" : "Define your bot's basic information and logic"}
                 </CardDescription>
@@ -543,6 +655,7 @@ const BotCreator = () => {
                   value={botName}
                   onChange={(e) => setBotName(e.target.value)}
                   className="h-11"
+                  disabled={!isIntelligentBot}
                 />
               </div>
               <div className="space-y-2">
@@ -553,6 +666,7 @@ const BotCreator = () => {
                   value={botDescription}
                   onChange={(e) => setBotDescription(e.target.value)}
                   className="h-11 resize-none"
+                  disabled={!isIntelligentBot}
                 />
               </div>
               {isIntelligentBot && (
@@ -620,7 +734,19 @@ const BotCreator = () => {
             {!isIntelligentBot && (
               <div className="space-y-2">
                 <Label htmlFor="python-code">Python Code</Label>
-                <div className="h-[350px] border border-code-border rounded-lg overflow-hidden scrollbar-visible">
+                <div className="h-[350px] border border-code-border rounded-lg overflow-hidden relative bg-muted/20">
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-10">
+                    <div className="text-center space-y-3">
+                      <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
+                        <Bot className="w-8 h-8 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-foreground">Non-Intelligent Bot</h3>
+                        <p className="text-sm text-muted-foreground mt-1">This feature is coming soon!</p>
+                        <p className="text-xs text-muted-foreground mt-2">Switch to Intelligent Bot to continue building.</p>
+                      </div>
+                    </div>
+                  </div>
                   <Editor
                     height="100%"
                     defaultLanguage="python"
@@ -634,6 +760,7 @@ const BotCreator = () => {
                       wordWrap: "on",
                       scrollBeyondLastLine: false,
                       automaticLayout: true,
+                      readOnly: true,
                     }}
                   />
                 </div>
@@ -655,10 +782,10 @@ const BotCreator = () => {
                     <div>
                       <CardTitle className="flex items-center gap-2 text-xl">
                         <Settings className="w-5 h-5" />
-                        Tools
+                        Tools & Knowledge Bases
                       </CardTitle>
                       <CardDescription className="mt-2">
-                        Select and manage tools/functions that are essential for the bot operations.
+                        Select and manage tools/functions and knowledge bases that are essential for the bot operations.
                       </CardDescription>
                     </div>
                     <div className="flex gap-2">
@@ -674,19 +801,23 @@ const BotCreator = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {selectedTools.length === 0 ? (
+                  {selectedTools.length === 0 && selectedKBs.length === 0 ? (
                     <div className="text-center py-12 text-muted-foreground border-2 border-dashed border-border rounded-xl">
                       <Settings className="w-8 h-8 mx-auto mb-3 opacity-50" />
-                      <p className="font-medium">No Tools Selected</p>
-                      <p className="text-sm mt-1">Select tools from the library or create a new one</p>
+                      <p className="font-medium">No Tools or Knowledge Bases Selected</p>
+                      <p className="text-sm mt-1">Select tools/KBs from the library or create new ones</p>
                     </div>
                   ) : null}
-                  {/* Always show selected tools summary, even if empty */}
+                  {/* Always show selected tools and KBs summary, even if empty */}
                   <div className="space-y-3 mt-2">
+                    {/* Display Tools */}
                     {getSelectedToolsData().map((tool) => (
-                      <div key={tool.id} className="flex items-center justify-between p-4 border border-border rounded-xl bg-card/50">
+                      <div key={`tool-${tool.id}`} className="flex items-center justify-between p-4 border border-border rounded-xl bg-card/50">
                         <div className="flex-1">
-                          <div className="font-medium text-foreground">{tool.name}</div>
+                          <div className="flex items-center gap-2">
+                            <div className="font-medium text-foreground">{tool.name}</div>
+                            <Badge variant="secondary" className="text-xs">Tool</Badge>
+                          </div>
                           <div className="text-sm text-muted-foreground mt-1">{tool.description}</div>
                           <div className="text-xs text-muted-foreground mt-1">
                             Created: {tool.createdAt ? new Date(tool.createdAt).toLocaleDateString() : ''}
@@ -696,6 +827,30 @@ const BotCreator = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRemoveTool(tool.id)}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    
+                    {/* Display Knowledge Bases */}
+                    {getSelectedKBsData().map((kb) => (
+                      <div key={`kb-${kb.id}`} className="flex items-center justify-between p-4 border border-border rounded-xl bg-card/50">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <div className="font-medium text-foreground">{kb.name}</div>
+                            <Badge variant="outline" className="text-xs">Knowledge Base</Badge>
+                          </div>
+                          <div className="text-sm text-muted-foreground mt-1">{kb.description}</div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            Created: {kb.createdAt ? new Date(kb.createdAt).toLocaleDateString() : ''}
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveKB(kb.id)}
                           className="text-destructive hover:text-destructive hover:bg-destructive/10"
                         >
                           <X className="w-4 h-4" />
@@ -788,12 +943,6 @@ const BotCreator = () => {
       </div>
 
       {/* Dialogs */}
-      <FunctionDialog
-        open={showFunctionDialog}
-        onOpenChange={setShowFunctionDialog}
-        onSave={handleAddFunction}
-      />
-
       <MessageConfigDialog
         open={showMessageDialog}
         onOpenChange={setShowMessageDialog}
