@@ -169,11 +169,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       
       // Start token refresh timer
       startTokenRefreshTimer();
-      
-      // Start inactivity monitoring
+    }
+  }, []); // Remove resetInactivityTimer dependency to avoid infinite loops
+
+  // Separate useEffect to initialize inactivity timer when authentication state changes
+  useEffect(() => {
+    if (isAuthenticated) {
       resetInactivityTimer();
     }
-  }, [resetInactivityTimer]);
+  }, [isAuthenticated, resetInactivityTimer]);
 
   const startTokenRefreshTimer = () => {
     // Clear existing interval

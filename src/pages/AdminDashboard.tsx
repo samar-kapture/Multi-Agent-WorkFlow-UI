@@ -36,6 +36,7 @@ interface User {
   username: string;
   email: string;
   client_id: string;
+  role: string;
   created_at: string;
   status: string;
 }
@@ -140,8 +141,9 @@ const AdminDashboard = () => {
           username: user.username,
           email: user.email,
           client_id: user.client_id,
+          role: user.role,
           created_at: user.created_at,
-          status: user.status || user.is_active ? 'active' : 'inactive' // Handle different possible status fields
+          status: user.is_active ? 'active' : 'inactive' // Use is_active for status
         }));
         setUsers(transformedUsers);
       } else {
@@ -338,21 +340,25 @@ const AdminDashboard = () => {
   }, [activeTab]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center gap-3">
-            <Shield className="w-8 h-8 text-indigo-400" />
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+              <Shield className="w-6 h-6 text-white" />
+            </div>
             <div>
-              <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
-              <p className="text-gray-300">Manage clients and users</p>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
+                Admin Dashboard
+              </h1>
+              <p className="text-slate-400 text-lg">Manage clients and users</p>
             </div>
           </div>
           <Button
             onClick={handleAdminLogout}
             variant="outline"
-            className="flex items-center gap-2 border-gray-600 text-gray-300 hover:bg-gray-700"
+            className="flex items-center gap-2 border-slate-600 text-slate-300 hover:bg-slate-700 hover:border-slate-500 transition-all duration-200"
           >
             <LogOut className="w-4 h-4" />
             Logout
@@ -360,24 +366,32 @@ const AdminDashboard = () => {
         </div>
 
         {/* Main Content */}
-        <Card className="w-full bg-gray-800 border-gray-700">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <Settings className="w-5 h-5" />
+        <Card className="w-full bg-slate-900/80 border-slate-700 backdrop-blur-sm shadow-2xl">
+          <CardHeader className="bg-gradient-to-r from-slate-800/50 to-slate-700/50 border-b border-slate-700">
+            <CardTitle className="flex items-center gap-3 text-white text-xl">
+              <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <Settings className="w-4 h-4 text-white" />
+              </div>
               System Administration
             </CardTitle>
-            <CardDescription className="text-gray-300">
+            <CardDescription className="text-slate-400 text-base">
               Manage clients, users, and system settings
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="clients" className="flex items-center gap-2">
+              <TabsList className="grid w-full grid-cols-2 bg-slate-800 border border-slate-700">
+                <TabsTrigger 
+                  value="clients" 
+                  className="flex items-center gap-2 data-[state=active]:bg-indigo-600 data-[state=active]:text-white text-slate-300 transition-all duration-200"
+                >
                   <Building className="w-4 h-4" />
                   Client Management
                 </TabsTrigger>
-                <TabsTrigger value="users" className="flex items-center gap-2">
+                <TabsTrigger 
+                  value="users" 
+                  className="flex items-center gap-2 data-[state=active]:bg-indigo-600 data-[state=active]:text-white text-slate-300 transition-all duration-200"
+                >
                   <Users className="w-4 h-4" />
                   User Management
                 </TabsTrigger>
@@ -386,30 +400,34 @@ const AdminDashboard = () => {
               {/* Clients Tab */}
               <TabsContent value="clients" className="mt-6">
                 <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-semibold text-white">Clients</h3>
+                  <h3 className="text-xl font-semibold text-white flex items-center gap-2">
+                    <Building className="w-5 h-5 text-indigo-400" />
+                    Clients
+                  </h3>
                   <Dialog open={showCreateClientDialog} onOpenChange={setShowCreateClientDialog}>
                     <DialogTrigger asChild>
-                      <Button className="flex items-center gap-2">
+                      <Button className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg transition-all duration-200">
                         <Plus className="w-4 h-4" />
                         Create Client
                       </Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="bg-slate-900 border-slate-700">
                       <DialogHeader>
-                        <DialogTitle>Create New Client</DialogTitle>
-                        <DialogDescription>
+                        <DialogTitle className="text-white text-xl">Create New Client</DialogTitle>
+                        <DialogDescription className="text-slate-400">
                           Add a new client to the system
                         </DialogDescription>
                       </DialogHeader>
                       <form onSubmit={handleCreateClient} className="space-y-4">
                         <div className="space-y-2">
-                          <Label htmlFor="client-name">Client Name</Label>
+                          <Label htmlFor="client-name" className="text-slate-300">Client Name</Label>
                           <Input
                             id="client-name"
                             value={newClientName}
                             onChange={(e) => setNewClientName(e.target.value)}
                             placeholder="Enter client name"
                             required
+                            className="bg-slate-800 border-slate-600 text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-indigo-500"
                           />
                         </div>
                         <div className="flex justify-end gap-2">
@@ -417,10 +435,15 @@ const AdminDashboard = () => {
                             type="button"
                             variant="outline"
                             onClick={() => setShowCreateClientDialog(false)}
+                            className="border-slate-600 text-slate-300 hover:bg-slate-700"
                           >
                             Cancel
                           </Button>
-                          <Button type="submit" disabled={loading}>
+                          <Button 
+                            type="submit" 
+                            disabled={loading}
+                            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                          >
                             {loading ? "Creating..." : "Create Client"}
                           </Button>
                         </div>
@@ -429,25 +452,25 @@ const AdminDashboard = () => {
                   </Dialog>
                 </div>
 
-                <div className="border rounded-lg border-gray-600 bg-gray-750">
+                <div className="border rounded-xl border-slate-700 bg-slate-800/50 backdrop-blur-sm shadow-xl overflow-hidden">
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-gray-600">
-                        <TableHead className="text-gray-300">Name</TableHead>
-                        <TableHead className="text-gray-300">Client ID</TableHead>
-                        <TableHead className="text-gray-300">Created Date</TableHead>
-                        <TableHead className="text-gray-300">Status</TableHead>
-                        <TableHead className="text-gray-300">Actions</TableHead>
+                      <TableRow className="border-slate-700 bg-slate-800/80">
+                        <TableHead className="text-slate-300 font-semibold">Name</TableHead>
+                        <TableHead className="text-slate-300 font-semibold">Client ID</TableHead>
+                        <TableHead className="text-slate-300 font-semibold">Created Date</TableHead>
+                        <TableHead className="text-slate-300 font-semibold">Status</TableHead>
+                        <TableHead className="text-slate-300 font-semibold">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {clients.map((client) => (
-                        <TableRow key={client.id} className="border-gray-600 hover:bg-gray-700">
+                        <TableRow key={client.id} className="border-slate-700 hover:bg-slate-700/50 transition-colors duration-200">
                           <TableCell className="font-medium text-white">{client.name}</TableCell>
-                          <TableCell className="text-gray-300">{client.client_id}</TableCell>
-                          <TableCell className="text-gray-300">{new Date(client.created_at).toLocaleDateString()}</TableCell>
+                          <TableCell className="text-slate-300 font-mono text-sm">{client.client_id}</TableCell>
+                          <TableCell className="text-slate-300">{new Date(client.created_at).toLocaleDateString()}</TableCell>
                           <TableCell>
-                            <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                               {client.status}
                             </span>
                           </TableCell>
@@ -459,7 +482,7 @@ const AdminDashboard = () => {
                                 setClientToDelete({ id: client.client_id, name: client.name });
                                 setShowDeleteDialog(true);
                               }}
-                              className="flex items-center gap-1"
+                              className="flex items-center gap-1 bg-red-600/20 text-red-400 border border-red-600/30 hover:bg-red-600/30 hover:text-red-300 transition-all duration-200"
                             >
                               <Trash2 className="w-3 h-3" />
                               Delete
@@ -475,34 +498,38 @@ const AdminDashboard = () => {
               {/* Users Tab */}
               <TabsContent value="users" className="mt-6">
                 <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-semibold text-white">Users</h3>
+                  <h3 className="text-xl font-semibold text-white flex items-center gap-2">
+                    <Users className="w-5 h-5 text-indigo-400" />
+                    Users
+                  </h3>
                   <Dialog open={showCreateUserDialog} onOpenChange={setShowCreateUserDialog}>
                     <DialogTrigger asChild>
-                      <Button className="flex items-center gap-2">
+                      <Button className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg transition-all duration-200">
                         <Plus className="w-4 h-4" />
                         Create User
                       </Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="bg-slate-900 border-slate-700">
                       <DialogHeader>
-                        <DialogTitle>Create New User</DialogTitle>
-                        <DialogDescription>
+                        <DialogTitle className="text-white text-xl">Create New User</DialogTitle>
+                        <DialogDescription className="text-slate-400">
                           Add a new user to the system
                         </DialogDescription>
                       </DialogHeader>
                       <form onSubmit={handleCreateUser} className="space-y-4">
                         <div className="space-y-2">
-                          <Label htmlFor="user-username">Username</Label>
+                          <Label htmlFor="user-username" className="text-slate-300">Username</Label>
                           <Input
                             id="user-username"
                             value={newUserUsername}
                             onChange={(e) => setNewUserUsername(e.target.value)}
                             placeholder="Enter username"
                             required
+                            className="bg-slate-800 border-slate-600 text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-indigo-500"
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="user-email">Email</Label>
+                          <Label htmlFor="user-email" className="text-slate-300">Email</Label>
                           <Input
                             id="user-email"
                             type="email"
@@ -510,10 +537,11 @@ const AdminDashboard = () => {
                             onChange={(e) => setNewUserEmail(e.target.value)}
                             placeholder="Enter email"
                             required
+                            className="bg-slate-800 border-slate-600 text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-indigo-500"
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="user-password">Password</Label>
+                          <Label htmlFor="user-password" className="text-slate-300">Password</Label>
                           <div className="relative">
                             <Input
                               id="user-password"
@@ -522,13 +550,13 @@ const AdminDashboard = () => {
                               onChange={(e) => setNewUserPassword(e.target.value)}
                               placeholder="Enter password"
                               required
-                              className="pr-10"
+                              className="bg-slate-800 border-slate-600 text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-indigo-500 pr-10"
                             />
                             <Button
                               type="button"
                               variant="ghost"
                               size="sm"
-                              className="absolute right-0 top-0 h-full px-3"
+                              className="absolute right-0 top-0 h-full px-3 text-slate-400 hover:text-slate-300"
                               onClick={() => setShowPassword(!showPassword)}
                             >
                               {showPassword ? (
@@ -540,17 +568,17 @@ const AdminDashboard = () => {
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="user-client">Client</Label>
+                          <Label htmlFor="user-client" className="text-slate-300">Client</Label>
                           <select
                             id="user-client"
                             value={newUserClientId}
                             onChange={(e) => setNewUserClientId(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 bg-slate-800 border border-slate-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             required
                           >
-                            <option value="">Select a client</option>
+                            <option value="" className="bg-slate-800">Select a client</option>
                             {clients.map((client) => (
-                              <option key={client.id} value={client.client_id}>
+                              <option key={client.id} value={client.client_id} className="bg-slate-800">
                                 {client.name} ({client.client_id})
                               </option>
                             ))}
@@ -561,10 +589,15 @@ const AdminDashboard = () => {
                             type="button"
                             variant="outline"
                             onClick={() => setShowCreateUserDialog(false)}
+                            className="border-slate-600 text-slate-300 hover:bg-slate-700"
                           >
                             Cancel
                           </Button>
-                          <Button type="submit" disabled={loading}>
+                          <Button 
+                            type="submit" 
+                            disabled={loading}
+                            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                          >
                             {loading ? "Creating..." : "Create User"}
                           </Button>
                         </div>
@@ -573,30 +606,38 @@ const AdminDashboard = () => {
                   </Dialog>
                 </div>
 
-                <div className="border rounded-lg border-gray-600 bg-gray-750">
+                <div className="border rounded-xl border-slate-700 bg-slate-800/50 backdrop-blur-sm shadow-xl overflow-hidden">
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-gray-600">
-                        <TableHead className="text-gray-300">Username</TableHead>
-                        <TableHead className="text-gray-300">Email</TableHead>
-                        <TableHead className="text-gray-300">Client ID</TableHead>
-                        <TableHead className="text-gray-300">Created Date</TableHead>
-                        <TableHead className="text-gray-300">Status</TableHead>
-                        <TableHead className="text-gray-300">Actions</TableHead>
+                      <TableRow className="border-slate-700 bg-slate-800/80">
+                        <TableHead className="text-slate-300 font-semibold">Username</TableHead>
+                        <TableHead className="text-slate-300 font-semibold">Email</TableHead>
+                        <TableHead className="text-slate-300 font-semibold">Role</TableHead>
+                        <TableHead className="text-slate-300 font-semibold">Created Date</TableHead>
+                        <TableHead className="text-slate-300 font-semibold">Status</TableHead>
+                        <TableHead className="text-slate-300 font-semibold">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {users.map((user) => (
-                        <TableRow key={user.id} className="border-gray-600 hover:bg-gray-700">
+                        <TableRow key={user.id} className="border-slate-700 hover:bg-slate-700/50 transition-colors duration-200">
                           <TableCell className="font-medium text-white">{user.username}</TableCell>
-                          <TableCell className="text-gray-300">{user.email}</TableCell>
-                          <TableCell className="text-gray-300">{user.client_id}</TableCell>
-                          <TableCell className="text-gray-300">{new Date(user.created_at).toLocaleDateString()}</TableCell>
+                          <TableCell className="text-slate-300">{user.email}</TableCell>
                           <TableCell>
-                            <span className={`px-2 py-1 rounded-full text-xs ${
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
+                              user.role === 'admin' 
+                                ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' 
+                                : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                            }`}>
+                              {user.role}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-slate-300">{new Date(user.created_at).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
                               user.status === 'active' 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-red-100 text-red-800'
+                                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' 
+                                : 'bg-red-500/20 text-red-400 border-red-500/30'
                             }`}>
                               {user.status || 'active'}
                             </span>
@@ -609,7 +650,7 @@ const AdminDashboard = () => {
                                 setResetUsername(user.username);
                                 setShowResetDialog(true);
                               }}
-                              className="flex items-center gap-1"
+                              className="flex items-center gap-1 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-all duration-200"
                             >
                               <RefreshCw className="w-3 h-3" />
                               Reset Password
@@ -627,10 +668,10 @@ const AdminDashboard = () => {
 
         {/* Delete Confirmation Dialog */}
         <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-          <DialogContent>
+          <DialogContent className="bg-slate-900 border-slate-700">
             <DialogHeader>
-              <DialogTitle>Delete Client</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-white text-xl">Delete Client</DialogTitle>
+              <DialogDescription className="text-slate-400">
                 Are you sure you want to delete the client "{clientToDelete?.name}"? This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
@@ -642,6 +683,7 @@ const AdminDashboard = () => {
                   setShowDeleteDialog(false);
                   setClientToDelete(null);
                 }}
+                className="border-slate-600 text-slate-300 hover:bg-slate-700"
               >
                 Cancel
               </Button>
@@ -649,6 +691,7 @@ const AdminDashboard = () => {
                 variant="destructive" 
                 onClick={handleDeleteClient}
                 disabled={loading}
+                className="bg-red-600 hover:bg-red-700"
               >
                 {loading ? "Deleting..." : "Delete Client"}
               </Button>
@@ -658,16 +701,16 @@ const AdminDashboard = () => {
 
         {/* Reset Password Dialog */}
         <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
-          <DialogContent>
+          <DialogContent className="bg-slate-900 border-slate-700">
             <DialogHeader>
-              <DialogTitle>Reset User Password</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-white text-xl">Reset User Password</DialogTitle>
+              <DialogDescription className="text-slate-400">
                 Enter a new password for the user
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleResetPassword} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="new-password">New Password</Label>
+                <Label htmlFor="new-password" className="text-slate-300">New Password</Label>
                 <div className="relative">
                   <Input
                     id="new-password"
@@ -676,13 +719,13 @@ const AdminDashboard = () => {
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Enter new password"
                     required
-                    className="pr-10"
+                    className="bg-slate-800 border-slate-600 text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-indigo-500 pr-10"
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="absolute right-0 top-0 h-full px-3"
+                    className="absolute right-0 top-0 h-full px-3 text-slate-400 hover:text-slate-300"
                     onClick={() => setShowNewPassword(!showNewPassword)}
                   >
                     {showNewPassword ? (
@@ -698,10 +741,15 @@ const AdminDashboard = () => {
                   type="button"
                   variant="outline"
                   onClick={() => setShowResetDialog(false)}
+                  className="border-slate-600 text-slate-300 hover:bg-slate-700"
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={loading}>
+                <Button 
+                  type="submit" 
+                  disabled={loading}
+                  className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                >
                   {loading ? "Resetting..." : "Reset Password"}
                 </Button>
               </div>

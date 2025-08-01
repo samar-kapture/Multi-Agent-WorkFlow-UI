@@ -50,12 +50,16 @@ export function AppSidebar() {
   const handleLogout = async () => {
     try {
       await logout();
+      // Clear all localStorage data for security
+      localStorage.clear();
       toast({
         title: "Logged Out",
         description: "You have been successfully logged out.",
       });
       navigate("/login");
     } catch (error) {
+      // Even if logout API fails, clear localStorage for security
+      localStorage.clear();
       toast({
         title: "Logout Error",
         description: "There was an issue logging out, but you have been signed out locally.",

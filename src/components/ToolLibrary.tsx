@@ -21,7 +21,7 @@ interface ToolLibraryProps {
 export const ToolLibrary = ({ open, onOpenChange, selectedTools, onToolSelectionChange }: ToolLibraryProps) => {
   // Use the API response shape directly
   const [tools, setTools] = useState<any[]>([]);
-  // Track deployment status for tools being added
+  // Track deployment status for tools being added - persisted in localStorage
   const [deployingTools, setDeployingTools] = useState<{ [task_id: string]: any }>({});
   // Track deleting status for tools
   const [deletingTools, setDeletingTools] = useState<{ [tool_id: string]: boolean }>({});
@@ -32,6 +32,35 @@ export const ToolLibrary = ({ open, onOpenChange, selectedTools, onToolSelection
   const [toolToDelete, setToolToDelete] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const authenticatedFetch = useAuthenticatedFetch();
+
+  // Load deploying tools from localStorage on mount
+  useEffect(() => {
+    const savedDeployingTools = localStorage.getItem('deployingTools');
+    if (savedDeployingTools) {
+      try {
+        const parsed = JSON.parse(savedDeployingTools);
+        setDeployingTools(parsed);
+        // Resume polling for each deploying tool
+        Object.values(parsed).forEach((tool: any) => {
+          if (tool.status === 'deploying' && tool.task_id) {
+            pollDeployStatus(tool);
+          }
+        });
+      } catch (error) {
+        console.error('Failed to parse saved deploying tools:', error);
+        localStorage.removeItem('deployingTools');
+      }
+    }
+  }, []);
+
+  // Save deploying tools to localStorage whenever it changes
+  useEffect(() => {
+    if (Object.keys(deployingTools).length > 0) {
+      localStorage.setItem('deployingTools', JSON.stringify(deployingTools));
+    } else {
+      localStorage.removeItem('deployingTools');
+    }
+  }, [deployingTools]);
 
   useEffect(() => {
     if (open) {
@@ -60,11 +89,18 @@ export const ToolLibrary = ({ open, onOpenChange, selectedTools, onToolSelection
   // Poll deployment status for a tool
   const pollDeployStatus = (tool: any) => {
     if (!tool.task_id) return;
-    setDeployingTools(prev => ({ ...prev, [tool.task_id]: { ...tool, status: 'deploying' } }));
+    
+    // Update tool status to deploying if not already set
+    setDeployingTools(prev => ({ 
+      ...prev, 
+      [tool.task_id]: { ...tool, status: 'deploying' } 
+    }));
+    
     const poll = async () => {
       try {
         const res = await authenticatedFetch(`${API_BASE_URL}/multiagent-core/celery-tasks/deploy-status/${tool.task_id}`);
         const data = await res.json();
+        
         if (data.state === 'SUCCESS') {
           setDeployingTools(prev => {
             const copy = { ...prev };
@@ -82,16 +118,32 @@ export const ToolLibrary = ({ open, onOpenChange, selectedTools, onToolSelection
           // Reload tools from backend
           loadTools();
         } else if (data.state === 'FAILURE') {
-          setDeployingTools(prev => ({ ...prev, [tool.task_id]: { ...tool, status: 'error', error: data.error || 'Deployment failed' } }));
+          setDeployingTools(prev => ({ 
+            ...prev, 
+            [tool.task_id]: { 
+              ...tool, 
+              status: 'error', 
+              error: data.error || 'Deployment failed' 
+            } 
+          }));
         } else {
           // Still deploying, keep polling
           setTimeout(poll, 5000); // 5 seconds
         }
       } catch (e) {
-        setDeployingTools(prev => ({ ...prev, [tool.task_id]: { ...tool, status: 'error', error: 'Failed to check deployment status' } }));
+        setDeployingTools(prev => ({ 
+          ...prev, 
+          [tool.task_id]: { 
+            ...tool, 
+            status: 'error', 
+            error: 'Failed to check deployment status' 
+          } 
+        }));
       }
     };
-    setTimeout(poll, 5000); // 5 seconds
+    
+    // Start polling after a short delay
+    setTimeout(poll, 3000); // 3 seconds initial delay
   };
 
   // toolData may include task_id, original_name, status
@@ -99,8 +151,12 @@ export const ToolLibrary = ({ open, onOpenChange, selectedTools, onToolSelection
     setShowFunctionDialog(false);
     if (toolData.task_id) {
       // Add to deployingTools and start polling
-      setDeployingTools(prev => ({ ...prev, [toolData.task_id]: toolData }));
-      pollDeployStatus(toolData);
+      const deployingTool = {
+        ...toolData,
+        status: 'deploying'
+      };
+      setDeployingTools(prev => ({ ...prev, [toolData.task_id]: deployingTool }));
+      pollDeployStatus(deployingTool);
     } else {
       // fallback: reload tools
       loadTools();

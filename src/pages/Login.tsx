@@ -27,12 +27,13 @@ const Login = () => {
   const { toast } = useToast();
   const { login, logout, isAuthenticated } = useAuth();
 
-  // Redirect if already authenticated - TEMPORARILY DISABLED FOR DEBUGGING
+  // Redirect if already authenticated
   useEffect(() => {
-    // Temporarily comment out redirect to see the login page
-    // if (isAuthenticated) {
-    //   navigate("/", { replace: true });
-    // }
+    if (isAuthenticated) {
+      navigate("/", { replace: true });
+    }
+    // Console log for debugging
+    console.log('Auth Status:', isAuthenticated ? 'Authenticated' : 'Not Authenticated');
   }, [isAuthenticated, navigate]);
 
   // Fetch clients on component mount
@@ -172,7 +173,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/10 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/10 flex items-center justify-center p-4 relative">
       <div className="w-full max-w-md">
         <Card className="shadow-2xl border-border/50 backdrop-blur-sm bg-card/80">
           <CardHeader className="space-y-4 text-center">
@@ -388,23 +389,21 @@ const Login = () => {
                 <strong>Enter your credentials to sign in</strong><br />
                 Username and password are required
               </p>
-              <div className="mt-3 text-center space-y-2">
-                <div className="text-xs text-muted-foreground">
-                  Auth Status: {isAuthenticated ? 'Authenticated' : 'Not Authenticated'}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleManualClear}
-                  className="text-xs"
-                >
-                  Clear All Data (Debug)
-                </Button>
-              </div>
             </div>
           </CardContent>
         </Card>
       </div>
+      
+      {/* Debug Button - Bottom Right Corner */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handleManualClear}
+        className="fixed bottom-4 right-4 text-xs px-2 py-1 h-8 opacity-50 hover:opacity-100 transition-opacity"
+        title="Clear All Data (Debug)"
+      >
+        Clear
+      </Button>
     </div>
   );
 };

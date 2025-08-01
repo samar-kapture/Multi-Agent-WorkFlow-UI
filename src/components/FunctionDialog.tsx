@@ -35,7 +35,6 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
   const [envVars, setEnvVars] = useState<{ key: string; value: string }[]>([{ key: '', value: '' }]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [polling, setPolling] = useState(false);
   const authenticatedFetch = useAuthenticatedFetch();
 
   useEffect(() => {
@@ -107,7 +106,7 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
       setDescription("");
       setEntryFunction("");
       setQueryFields([{ key: '', description: '', type: '' }]);
-      setRequirements(["flask"]);
+      setRequirements([""]);
       setEnvVars([{ key: '', value: '' }]);
       setCode(`# Function implementation\ndef function_name():\n    # Your code here\n    return {\n        'success': True,\n        'data': 'Function executed successfully'\n    }\n`);
     }
@@ -174,6 +173,13 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
       // Handle Custom Function creation/update
       const filteredQueryFields = queryFields.filter(qf => qf.key.trim() || qf.description.trim() || qf.type.trim());
       const filteredRequirements = requirements.filter(r => r.trim());
+      
+      // Add flask as default requirement and remove duplicates
+      const allRequirements = ["flask", ...filteredRequirements];
+      const uniqueRequirements = Array.from(new Set(allRequirements.map(r => r.toLowerCase())))
+        .map(lowerReq => allRequirements.find(req => req.toLowerCase() === lowerReq))
+        .filter(Boolean) as string[];
+      
       const filteredEnvVars = envVars.filter(ev => ev.key.trim() || ev.value.trim());
       
       // Convert envVars array to object format
@@ -201,7 +207,7 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
         description: description,
         entry_function: entryFunction,
         query_description: JSON.stringify(queryDescription),
-        requirements: JSON.stringify(filteredRequirements),
+        requirements: JSON.stringify(uniqueRequirements),
         env_vars: JSON.stringify(envVarsObj)
       });
 
@@ -237,8 +243,17 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
       
       // If creating new tool, start polling for deployment status
       if (!initialTool && result.task_id) {
-        setPolling(true);
-        pollDeploymentStatus(result.task_id, result);
+        // Close dialog immediately and let ToolLibrary handle the deployment status
+        onSave({
+          name: functionName,
+          description: description,
+          code: code,
+          task_id: result.task_id,
+          original_name: functionName,
+          status: 'deploying',
+          ...result
+        });
+        setLoading(false);
       } else {
         onSave({
           name: functionName,
@@ -246,43 +261,12 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
           code: code,
           ...result
         });
+        setLoading(false);
       }
     } catch (error) {
       console.error('Error saving function:', error);
       setError(error instanceof Error ? error.message : 'Failed to save function');
       setLoading(false);
-    }
-  };
-
-  const pollDeploymentStatus = async (taskId: string, toolData: any) => {
-    try {
-      const response = await authenticatedFetch(`${API_BASE_URL}/multiagent-core/celery-tasks/deploy-status/${taskId}`);
-      const data = await response.json();
-      
-      if (data.state === 'SUCCESS') {
-        setPolling(false);
-        setLoading(false);
-        onSave({
-          name: functionName,
-          description: description,
-          code: code,
-          task_id: taskId,
-          original_name: functionName,
-          status: 'deployed',
-          ...toolData
-        });
-      } else if (data.state === 'FAILURE') {
-        setPolling(false);
-        setLoading(false);
-        setError(`Deployment failed: ${data.error || 'Unknown error'}`);
-      } else {
-        // Still deploying, continue polling
-        setTimeout(() => pollDeploymentStatus(taskId, toolData), 3000);
-      }
-    } catch (error) {
-      setPolling(false);
-      setLoading(false);
-      setError('Failed to check deployment status');
     }
   };
 
@@ -507,19 +491,13 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
               <p className="text-sm text-destructive">{error}</p>
             </div>
           )}
-          
-          {polling && (
-            <div className="mb-4 p-3 bg-primary/10 border border-primary/20 rounded-lg">
-              <p className="text-sm text-primary">Deploying function... This may take a few minutes.</p>
-            </div>
-          )}
 
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={loading || polling}>
-              {loading || polling ? "Saving..." : "Save & Deploy"}
+            <Button onClick={handleSave} disabled={loading}>
+              {loading ? "Saving..." : "Save & Deploy"}
             </Button>
           </div>
         </div>
