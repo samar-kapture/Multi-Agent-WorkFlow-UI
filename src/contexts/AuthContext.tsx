@@ -78,6 +78,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     localStorage.removeItem("isAuthenticated");
     localStorage.removeItem("username");
     localStorage.removeItem("clientId");
+    localStorage.removeItem("apiClientId");
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
   }, [refreshTokenValue]);
@@ -208,15 +209,38 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (response.ok) {
         const data = await response.json();
         
+        // Fetch client name from clients API
+        let clientName = clientId; // fallback to clientId
+        try {
+          const clientsResponse = await fetch(`${API_BASE_URL}/multiagent-core/clients/?page=1&size=50`, {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (clientsResponse.ok) {
+            const clientsData = await clientsResponse.json();
+            if (clientsData.clients && Array.isArray(clientsData.clients)) {
+              const foundClient = clientsData.clients.find((client: any) => client.client_id === clientId);
+              if (foundClient) {
+                clientName = foundClient.client_name;
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch client name:', error);
+        }
+        
         setIsAuthenticated(true);
         setUsername(username);
-        setClientId(clientId);
+        setClientId(clientName); // Store client name as clientId for display
         setAccessToken(data.access_token);
         setRefreshTokenValue(data.refresh_token);
         
         localStorage.setItem("isAuthenticated", "true");
         localStorage.setItem("username", username);
-        localStorage.setItem("clientId", clientId);
+        localStorage.setItem("clientId", clientName); // Store client name as clientId for display
+        localStorage.setItem("apiClientId", clientId); // Store actual client_id for API calls
         localStorage.setItem("accessToken", data.access_token);
         localStorage.setItem("refreshToken", data.refresh_token);
         

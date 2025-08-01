@@ -13,6 +13,7 @@ import FlowBuilder from "./pages/FlowBuilder";
 import FlowLibrary from "./pages/FlowLibrary";
 import AgentChatPage from "./pages/AgentChat";
 import Login from "./pages/Login";
+import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/" element={
               <ProtectedRoute>
                 <Layout>

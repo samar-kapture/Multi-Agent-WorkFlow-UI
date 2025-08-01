@@ -107,7 +107,7 @@ export const FunctionDialog = ({ open, onOpenChange, onSave, initialTool }: Func
       setDescription("");
       setEntryFunction("");
       setQueryFields([{ key: '', description: '', type: '' }]);
-      setRequirements([""]);
+      setRequirements(["flask"]);
       setEnvVars([{ key: '', value: '' }]);
       setCode(`# Function implementation\ndef function_name():\n    # Your code here\n    return {\n        'success': True,\n        'data': 'Function executed successfully'\n    }\n`);
     }
